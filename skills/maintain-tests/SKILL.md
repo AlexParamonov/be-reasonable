@@ -1,10 +1,8 @@
 ---
 name: maintain-tests
-description: User-invoked only, never runs automatically. Reviews a test suite for maintainability, cutting assertions on copy, CSS and other implementation details. Run only when the user explicitly asks for a test review.
+description: Reviews a test suite for maintainability, cutting assertions implementation details.
 ---
 
-Critically review your tests. Remove, delete or change parts that assert copy, CSS classes, DOM shape or other implementation details. Tests should only test behaviour.
-
-Apply the rules in [testing.md](./testing.md) next to this file.
-
-Reduce the tests-to-production ratio significantly and make the suite run in a few milliseconds.
+Critically review your tests and remove/delete/change parts that assert copy, css classes or private methods.
+Tests should only test behaviour, see project's testing.md or docs/patterns/testing.md or if that is missing follow [testing.base.md](testing.base.md)
+Reduce tests to prod ratio significantly and make tests run under a few ms.

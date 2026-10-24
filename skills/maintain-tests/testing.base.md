@@ -1,8 +1,6 @@
 # Testing rules
 
-One page of stack-agnostic rules for tests an AI agent can maintain. A test is
-coverage only when it pins behaviour; anything else is a change detector that
-breaks on safe refactors and passes on real bugs.
+A test is coverage only when it pins behaviour; anything else is a change detector that breaks on safe refactors and passes on real bugs.
 
 ## What to assert
 
@@ -17,7 +15,6 @@ breaks on safe refactors and passes on real bugs.
 - Most tests live at the pure-logic layer; full UI and integration runs are the minority. A slow test is usually a test at the wrong layer.
 - The unit tier runs in milliseconds. If it can't, move the logic down or delete the test.
 - Build state through composable factories and real domain APIs, not copy-pasted setup.
-- One test is one contract. Multi-leg scenarios and edge tables get named cases of their own.
 
 ## Synchronization
 
@@ -30,8 +27,7 @@ breaks on safe refactors and passes on real bugs.
 
 - Configure test doubles per test at the narrowest boundary; verify a fake's contract against the real path before trusting it.
 - Thread test values through parameters and options; never mutate global environment or app config from a test.
-- Prefer async and parallel by default; serialize only tests that mutate process-global state.
-- Test-owned processes are started supervised so the framework cleans them up.
+- Prefer async and parallel tests execution by default.
 
 ## Hygiene
 

@@ -1,0 +1,12 @@
+{
+  "name": "be-reasonable",
+  "version": "0.1.0",
+  "description": "Review-time slash commands for AI coding agents",
+  "license": "MIT",
+  "repository": "github:AlexParamonov/be-reasonable",
+  "keywords": ["pi-package"],
+  "files": ["commands"],
+  "pi": {
+    "prompts": ["./commands/*.md"]
+  }
+}

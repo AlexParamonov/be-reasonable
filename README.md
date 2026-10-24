@@ -2,10 +2,12 @@
 
 Two slash commands that keep your AI coding agent honest — **after** it writes the code.
 
-Most agent rules are system prompts loaded before the work: they compete for the
-context window, drift out of date, and blur into a hundred other instructions.
-These commands are review-time guardrails. You fire them when the agent is done;
-they challenge what it produced. Nothing is loaded, nothing runs, until you ask.
+Most agent rules are system prompts loaded before the work: they compete for the context window, drift out of date, and blur into a hundred other instructions.
+
+I supply skills version just for that. But also encourage you to run `/be-reasonable` after planning, implementation or as often as you wish.
+You will be surprised how much junk it will remove without sacrificing system correctness.
+
+Put those in your automated pipeline or just run manually - it will get rid of slop that your other instructions missed.
 
 ## Commands
 
@@ -13,37 +15,87 @@ they challenge what it produced. Nothing is loaded, nothing runs, until you ask.
 
 Post-hoc simplicity review. Asks whether the solution is simple and maintainable,
 whether every moving piece earns its place, and what the smallest correct version
-looks like. Takes a scope: the change just written, a file, a spec.
+looks like. You can add extra instructions or scope it to a feature
 
 ### `/maintain-tests`
 
-Test hygiene review. Cuts assertions on copy, CSS classes, DOM shape and other
-implementation details, drives tests toward behaviour-only, and pushes the suite
-toward milliseconds. Backed by a one-page, stack-agnostic
-[ruleset](skills/maintain-tests/testing.md).
+Test hygiene review. Cuts assertions on copy, CSS classes, private methods and
+other implementation details, drives tests toward behaviour-only, and pushes the
+suite toward milliseconds. If your project documents its own testing rules
+(`testing.md` or `docs/patterns/testing.md`), the command reviews against those;
+otherwise it falls back to the bundled stack-agnostic
+[base ruleset](skills/maintain-tests/testing.base.md).
 
 ## Install
 
-**Claude Code (commands):** copy the files from [`commands/`](commands/) into
-`.claude/commands/` (per project) or `~/.claude/commands/` (global).
+Two installable units — pick one or both:
 
-**Any agent (skills):** one command via [skills.sh](https://skills.sh):
+- **Commands** — user-invoked slash commands, zero system-prompt impact. Per harness below.
+- **Skills** — for skills-only agents; bundles `testing.base.md`. One installer, any agent.
+
+### Commands
+
+**Pi**
 
 ```
-npx skills@latest add AlexParamonov/be-reasonable -a <agent>
+pi install npm:be-reasonable
 ```
 
-**Manual:** copy `commands/*.md` wherever your agent reads slash commands, and/or
-`skills/` if it reads `SKILL.md`. No other files, no hooks, no build step.
+Both commands install as prompt templates (`/be-reasonable`, `/maintain-tests`);
+the `pi` manifest in `package.json` maps them straight from [`commands/`](commands/).
+Or straight from GitHub, no npm needed: `pi install git:github.com/AlexParamonov/be-reasonable`.
 
-## Why every command ships twice
+**Claude Code**
 
-`commands/` is the canonical form: these are user-invoked slash commands, and the
-markdown there is the source of truth. `skills/` is a fallback mirror so that
-skills-only agents and one-command installers work, and so `testing.md` travels
-with `maintain-tests` when installed as a skill. If the two copies disagree,
-`commands/` wins; keep them in sync.
+```
+claude plugin marketplace add AlexParamonov/be-reasonable
+/plugin install be-reasonable@be-reasonable
+```
 
-Both copies are phrased **user-invoked only**: their descriptions tell the model
-never to trigger them on its own. A guardrail runs when a human decides the agent
-should be checked, not when the model feels like it — that is the whole design.
+Plugin commands are namespaced (`/be-reasonable:maintain-tests` — and, yes,
+`/be-reasonable:be-reasonable`). Prefer the plain names? Drop the files in yourself:
+
+```bash
+mkdir -p ~/.claude/commands
+base=https://raw.githubusercontent.com/AlexParamonov/be-reasonable/main/commands
+curl -fsSL $base/be-reasonable.md -o ~/.claude/commands/be-reasonable.md
+curl -fsSL $base/maintain-tests.md -o ~/.claude/commands/maintain-tests.md
+```
+
+**Codex** — no prompt distribution channel, so copy into `~/.codex/prompts/`
+yourself (runs as `/prompts:be-reasonable` and `/prompts:maintain-tests`):
+
+```bash
+mkdir -p ~/.codex/prompts
+base=https://raw.githubusercontent.com/AlexParamonov/be-reasonable/main/commands
+curl -fsSL $base/be-reasonable.md -o ~/.codex/prompts/be-reasonable.md
+curl -fsSL $base/maintain-tests.md -o ~/.codex/prompts/maintain-tests.md
+```
+
+**OpenCode** — same files into `~/.config/opencode/command/` (global) or
+`.opencode/command/` (project).
+
+**Any other agent** — `commands/*.md` is plain markdown in the native prompt
+format for Pi, Claude Code, Codex and OpenCode alike; copy it wherever your
+agent reads prompts or commands.
+
+### Skills
+
+Via [skills.sh](https://skills.sh), any agent:
+
+```bash
+npx skills@latest add AlexParamonov/be-reasonable -a claude-code
+npx skills@latest add AlexParamonov/be-reasonable -a codex
+npx skills@latest add AlexParamonov/be-reasonable -a cursor
+npx skills@latest add AlexParamonov/be-reasonable -a gemini-cli
+npx skills@latest add AlexParamonov/be-reasonable -a opencode
+npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
+```
+
+Only want one of the two skills? Select it:
+
+```bash
+npx skills@latest add AlexParamonov/be-reasonable --skill maintain-tests -a universal
+```
+
+Add `-g` for a global install; `npx skills --help` lists all supported agents.

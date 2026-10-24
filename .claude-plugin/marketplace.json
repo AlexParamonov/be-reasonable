@@ -1,0 +1,13 @@
+{
+  "name": "be-reasonable",
+  "owner": {
+    "name": "Alexander Paramonov"
+  },
+  "plugins": [
+    {
+      "name": "be-reasonable",
+      "source": "./",
+      "description": "Review-time slash commands: /be-reasonable and /maintain-tests"
+    }
+  ]
+}

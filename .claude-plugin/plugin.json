@@ -1,0 +1,6 @@
+{
+  "name": "be-reasonable",
+  "version": "0.1.0",
+  "description": "Review-time slash commands that keep your AI coding agent honest",
+  "commands": ["./commands/*.md"]
+}
