@@ -1,6 +1,6 @@
 ---
 name: be-reasonable
-description: Review recent changes for unnecessary complexity and simpler alternatives
+description: Make the agent justify every moving part and cut what it can't. Run after planning or implementation, or in your pipeline.
 argument-hint: "<file, scope, or spec to review>"
 ---
 

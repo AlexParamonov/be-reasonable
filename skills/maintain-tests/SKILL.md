@@ -1,6 +1,6 @@
 ---
 name: maintain-tests
-description: Reviews a test suite for maintainability, cutting assertions implementation details.
+description: Use after writing or updating tests. Drop assertions on copy, CSS classes and private methods, assert behaviour only, keep the suite fast.
 ---
 
 Critically review your tests and remove/delete/change parts that assert copy, css classes or private methods.
