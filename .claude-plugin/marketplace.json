@@ -7,7 +7,7 @@
     {
       "name": "be-reasonable",
       "source": "./",
-      "description": "Review-time slash commands: /be-reasonable and /maintain-tests"
+      "description": "Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only."
     }
   ]
 }

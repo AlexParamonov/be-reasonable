@@ -1,6 +1,6 @@
 # be-reasonable
 
-Two slash commands that keep your AI coding agent honest — **after** it writes the code.
+Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only.
 
 Most agent rules are system prompts loaded before the work: they compete for the context window, drift out of date, and blur into a hundred other instructions.
 

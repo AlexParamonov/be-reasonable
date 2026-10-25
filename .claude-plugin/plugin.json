@@ -1,6 +1,6 @@
 {
   "name": "be-reasonable",
   "version": "0.1.0",
-  "description": "Review-time slash commands that keep your AI coding agent honest",
+  "description": "Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only.",
   "commands": ["./commands/*.md"]
 }

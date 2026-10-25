@@ -1,7 +1,7 @@
 {
   "name": "be-reasonable",
   "version": "0.1.0",
-  "description": "Review-time slash commands for AI coding agents",
+  "description": "Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only.",
   "license": "MIT",
   "repository": "github:AlexParamonov/be-reasonable",
   "keywords": ["pi-package"],
