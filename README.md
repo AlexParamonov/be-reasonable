@@ -2,98 +2,89 @@
 
 Simplify code without sacrificing correctness and keep tests focused on behavior.
 
-Most agent rules are system prompts loaded before the work: they compete for the context window, drift out of date, and blur into a hundred other instructions.
+Use the prompts for on-demand reviews. The skills provide reusable guidance to agents that support Agent Skills.
 
-I supply skills version just for that. But also encourage you to run `/be-reasonable` after planning, implementation or as often as you wish.
-You will be surprised how much junk it will remove without sacrificing system correctness.
+## Pi
 
-Put those in your automated pipeline or just run manually - it will get rid of slop that your other instructions missed.
+Install the package from npm:
 
-## Commands
-
-### `/be-reasonable`
-
-Post-hoc simplicity review. Asks whether the solution is simple and maintainable,
-whether every moving piece earns its place, and what the smallest correct version
-looks like. You can add extra instructions or scope it to a feature
-
-### `/maintain-tests`
-
-Test hygiene review. Cuts assertions on copy, CSS classes, private methods and
-other implementation details, drives tests toward behaviour-only, and pushes the
-suite toward milliseconds. If your project documents its own testing rules
-(`testing.md` or `docs/patterns/testing.md`), the command reviews against those;
-otherwise it falls back to the bundled stack-agnostic
-[base ruleset](skills/maintain-tests/testing.base.md).
-
-## Install
-
-Install the commands, skills, or both for your agent:
-
-- **Commands** — user-invoked slash commands, zero system-prompt impact. Per harness below.
-- **Skills** — for skills-only agents; bundles `testing.base.md`. One installer, any agent.
-
-### Commands
-
-**Pi**
-
-```
+```sh
 pi install npm:be-reasonable
 ```
 
-This installs the package's prompt commands and skills. See the
-[Pi-specific guide](https://github.com/AlexParamonov/be-reasonable/blob/main/README.pi.md)
-for details and resource selection. Or install straight from GitHub, no npm
-needed: `pi install git:github.com/AlexParamonov/be-reasonable`.
+Pi loads prompts and skills by default. To install for the current project instead of all projects:
 
-**Claude Code**
-
+```sh
+pi install -l npm:be-reasonable
 ```
+
+### Prompts
+
+- `/be-reasonable [scope]` reviews a plan or implementation for simpler alternatives that preserve correctness.
+- `/maintain-tests` reviews tests for behavior-focused assertions and follows the project's testing guidance when available.
+
+### Skills
+
+Pi can select the skills when relevant, or you can invoke them directly:
+
+- `/skill:be-reasonable` reviews unnecessary complexity.
+- `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
+
+### Choose which resources to load
+
+To load only prompts or only skills, replace the package's string entry in `packages` in `~/.pi/agent/settings.json` (global) or `.pi/settings.json` (project-local) with an object. Keep any other entries in that array.
+
+**Prompts only:**
+
+```json
+{
+  "packages": [
+    {
+      "source": "npm:be-reasonable",
+      "skills": []
+    }
+  ]
+}
+```
+
+**Skills only:**
+
+```json
+{
+  "packages": [
+    {
+      "source": "npm:be-reasonable",
+      "prompts": []
+    }
+  ]
+}
+```
+
+Leave the package entry unfiltered to load both.
+
+## Other agents
+
+Claude Code users can install the GitHub plugin:
+
+```sh
 claude plugin marketplace add AlexParamonov/be-reasonable
 /plugin install be-reasonable@be-reasonable
 ```
 
-Plugin skills are namespaced (`/be-reasonable:maintain-tests` and
-`/be-reasonable:be-reasonable`). Prefer the plain names? Drop the command files in yourself:
+Its skills are namespaced, for example `/be-reasonable:maintain-tests`. To use plain commands instead, copy the Markdown files from `commands/` into `~/.claude/commands/`.
 
-```bash
-mkdir -p ~/.claude/commands
-base=https://raw.githubusercontent.com/AlexParamonov/be-reasonable/main/commands
-curl -fsSL $base/be-reasonable.md -o ~/.claude/commands/be-reasonable.md
-curl -fsSL $base/maintain-tests.md -o ~/.claude/commands/maintain-tests.md
-```
+Codex users can install the GitHub marketplace plugin:
 
-**Codex**
-
-Add the GitHub marketplace and install its plugin from Codex CLI:
-
-```bash
+```sh
 codex plugin marketplace add AlexParamonov/be-reasonable
 codex plugin add be-reasonable@be-reasonable
 ```
 
-Start a new Codex session to use the skills. After repository updates, refresh the marketplace:
+After repository updates, refresh the marketplace with `codex plugin marketplace upgrade be-reasonable` and start a new session.
 
-```bash
-codex plugin marketplace upgrade be-reasonable
-```
+OpenCode users can copy `commands/*.md` to `~/.config/opencode/command/` (global) or `.opencode/command/` (project-local). Other agents can use the Markdown prompts in `commands/` and install skills with [skills.sh](https://skills.sh):
 
-**OpenCode** — same files into `~/.config/opencode/command/` (global) or
-`.opencode/command/` (project).
-
-**Any other agent** — `commands/*.md` is plain markdown in the native prompt
-format for Pi, Claude Code and OpenCode; copy it wherever your agent reads
-prompts or commands.
-
-### Skills
-
-Pi users can install commands and skills together with one package install;
-see the [Pi-specific guide](https://github.com/AlexParamonov/be-reasonable/blob/main/README.pi.md)
-for selective installation.
-
-Via [skills.sh](https://skills.sh), any agent:
-
-```bash
+```sh
 npx skills@latest add AlexParamonov/be-reasonable -a claude-code
 npx skills@latest add AlexParamonov/be-reasonable -a codex
 npx skills@latest add AlexParamonov/be-reasonable -a cursor
@@ -102,10 +93,4 @@ npx skills@latest add AlexParamonov/be-reasonable -a opencode
 npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
 ```
 
-To install a specific skill, select it:
-
-```bash
-npx skills@latest add AlexParamonov/be-reasonable --skill maintain-tests -a universal
-```
-
-Add `-g` for a global install; `npx skills --help` lists all supported agents.
+To install only one skill, add `--skill maintain-tests` or `--skill be-reasonable`. Use `-g` for a global install; `npx skills --help` lists supported agents.
