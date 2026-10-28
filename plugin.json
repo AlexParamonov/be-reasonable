@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "be-reasonable",
+  "version": "0.1.1",
+  "description": "Simplify code without sacrificing correctness and keep tests focused on behavior.",
+  "author": {
+    "name": "Alexander Paramonov"
+  },
+  "license": "MIT"
+}

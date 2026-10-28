@@ -63,22 +63,27 @@ curl -fsSL $base/be-reasonable.md -o ~/.claude/commands/be-reasonable.md
 curl -fsSL $base/maintain-tests.md -o ~/.claude/commands/maintain-tests.md
 ```
 
-**Codex** — no prompt distribution channel, so copy into `~/.codex/prompts/`
-yourself (runs as `/prompts:be-reasonable` and `/prompts:maintain-tests`):
+**Codex**
+
+Add the GitHub marketplace and install its plugin from Codex CLI:
 
 ```bash
-mkdir -p ~/.codex/prompts
-base=https://raw.githubusercontent.com/AlexParamonov/be-reasonable/main/commands
-curl -fsSL $base/be-reasonable.md -o ~/.codex/prompts/be-reasonable.md
-curl -fsSL $base/maintain-tests.md -o ~/.codex/prompts/maintain-tests.md
+codex plugin marketplace add AlexParamonov/be-reasonable
+codex plugin add be-reasonable@be-reasonable
+```
+
+Start a new Codex session to use the skills. After repository updates, refresh the marketplace:
+
+```bash
+codex plugin marketplace upgrade be-reasonable
 ```
 
 **OpenCode** — same files into `~/.config/opencode/command/` (global) or
 `.opencode/command/` (project).
 
 **Any other agent** — `commands/*.md` is plain markdown in the native prompt
-format for Pi, Claude Code, Codex and OpenCode alike; copy it wherever your
-agent reads prompts or commands.
+format for Pi, Claude Code and OpenCode; copy it wherever your agent reads
+prompts or commands.
 
 ### Skills
 

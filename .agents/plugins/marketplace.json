@@ -1,0 +1,15 @@
+{
+  "name": "be-reasonable",
+  "interface": {
+    "displayName": "be-reasonable"
+  },
+  "plugins": [
+    {
+      "name": "be-reasonable",
+      "source": {
+        "source": "local",
+        "path": "./"
+      }
+    }
+  ]
+}
