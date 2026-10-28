@@ -1,6 +1,6 @@
 # be-reasonable
 
-Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only.
+Simplify code without sacrificing correctness and keep tests focused on behavior.
 
 Most agent rules are system prompts loaded before the work: they compete for the context window, drift out of date, and blur into a hundred other instructions.
 
@@ -28,7 +28,7 @@ otherwise it falls back to the bundled stack-agnostic
 
 ## Install
 
-Two installable units — pick one or both:
+Install the commands, skills, or both for your agent:
 
 - **Commands** — user-invoked slash commands, zero system-prompt impact. Per harness below.
 - **Skills** — for skills-only agents; bundles `testing.base.md`. One installer, any agent.
@@ -41,9 +41,10 @@ Two installable units — pick one or both:
 pi install npm:be-reasonable
 ```
 
-Both commands install as prompt templates (`/be-reasonable`, `/maintain-tests`);
-the `pi` manifest in `package.json` maps them straight from [`commands/`](commands/).
-Or straight from GitHub, no npm needed: `pi install git:github.com/AlexParamonov/be-reasonable`.
+This installs the package's prompt commands and skills. See the
+[Pi-specific guide](https://github.com/AlexParamonov/be-reasonable/blob/main/README.pi.md)
+for details and resource selection. Or install straight from GitHub, no npm
+needed: `pi install git:github.com/AlexParamonov/be-reasonable`.
 
 **Claude Code**
 
@@ -81,6 +82,10 @@ agent reads prompts or commands.
 
 ### Skills
 
+Pi users can install commands and skills together with one package install;
+see the [Pi-specific guide](https://github.com/AlexParamonov/be-reasonable/blob/main/README.pi.md)
+for selective installation.
+
 Via [skills.sh](https://skills.sh), any agent:
 
 ```bash
@@ -92,7 +97,7 @@ npx skills@latest add AlexParamonov/be-reasonable -a opencode
 npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
 ```
 
-Only want one of the two skills? Select it:
+To install a specific skill, select it:
 
 ```bash
 npx skills@latest add AlexParamonov/be-reasonable --skill maintain-tests -a universal
