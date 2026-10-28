@@ -1,6 +1,9 @@
 {
   "name": "be-reasonable",
-  "version": "0.1.0",
-  "description": "Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only.",
-  "commands": ["./commands/*.md"]
+  "version": "0.1.1",
+  "description": "Simplify code without sacrificing correctness and keep tests focused on behavior.",
+  "author": {
+    "name": "Alexander Paramonov"
+  },
+  "commands": []
 }

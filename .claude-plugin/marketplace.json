@@ -1,5 +1,6 @@
 {
   "name": "be-reasonable",
+  "description": "Simplify code without sacrificing correctness and keep tests focused on behavior.",
   "owner": {
     "name": "Alexander Paramonov"
   },
@@ -7,7 +8,7 @@
     {
       "name": "be-reasonable",
       "source": "./",
-      "description": "Two commands that make your AI agent cut overbuilt code and keep tests behaviour-only."
+      "description": "Simplify code without sacrificing correctness and keep tests focused on behavior."
     }
   ]
 }

@@ -53,8 +53,8 @@ claude plugin marketplace add AlexParamonov/be-reasonable
 /plugin install be-reasonable@be-reasonable
 ```
 
-Plugin commands are namespaced (`/be-reasonable:maintain-tests` — and, yes,
-`/be-reasonable:be-reasonable`). Prefer the plain names? Drop the files in yourself:
+Plugin skills are namespaced (`/be-reasonable:maintain-tests` and
+`/be-reasonable:be-reasonable`). Prefer the plain names? Drop the command files in yourself:
 
 ```bash
 mkdir -p ~/.claude/commands
