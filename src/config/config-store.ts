@@ -58,7 +58,7 @@ export class ConfigStore {
 
   // ── Mutations ───────────────────────────────────────────────
 
-  /** The switch is global: a project file may not turn the extension on or off. */
+  /** Writes land in the global file; a project file's own `enabled` still overrides it. */
   setBeConciseEnabled(enabled: boolean | undefined): void {
     this.applyBeConciseWrite((layer) => {
       if (enabled === undefined) delete layer.enabled;
@@ -73,7 +73,7 @@ export class ConfigStore {
     });
   }
 
-  /** The wording is global: it is the instruction sent on every trigger, not a per-project value. */
+  /** Writes land in the global file; a project file's own `message` still overrides it. */
   setBeConciseMessage(message: string | undefined): void {
     this.applyBeConciseWrite((layer) => {
       if (message === undefined) delete layer.message;

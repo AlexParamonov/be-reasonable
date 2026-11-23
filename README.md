@@ -2,6 +2,8 @@
 
 Simplify code without sacrificing correctness and keep tests focused on behavior.
 
+It also turns pages of agent prose into the answer you can read, without asking the agent to reason less.
+
 The skills provide reusable guidance to agents that support Agent Skills. An agent selects them when the task matches, and you can also invoke a skill directly as a command.
 
 ## Pi
@@ -25,7 +27,7 @@ Pi selects a skill when the task matches its description, or you can invoke it d
 - `/skill:be-reasonable` reviews unnecessary complexity.
 - `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
 - `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`. It sets `disable-model-invocation: true`, so an agent never selects it on its own; run it yourself, and pass the change to document or nothing at all to tidy the Unreleased section.
-- `/skill:be-concise` cuts the last reply down. It also sets `disable-model-invocation: true`.
+- `/skill:be-concise` cuts the last reply down, automatically and fully configurable via /be-reasonable-settings menu
 
 ### be-concise extension
 
@@ -42,11 +44,11 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 }
 ```
 
-`enabled` is off until you set it, and `message` is the instruction sent: those same two words by default, the ones `/skill:be-concise` carries. An elaborate instruction tested worse than the plain one. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten.
+`enabled` is off until you set it, and `message` is the instruction the agent receives: those two words by default, the ones `/skill:be-concise` carries, because an elaborate instruction tested worse than the plain one. Put whatever you like there. A trusted project's `.pi/be-reasonable.json` overrides every setting for that project, so one repository can run with its own bound, switch and wording.
 
-`/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A change is written to the global file as you make it, so a project's `maxChars` still wins over it.
+`/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A change is written to the global file as you make it, so a project's own setting still wins over it.
 
-The request waits for the turn to end rather than cutting in while tools are still running, and the shorter answer comes as its own turn. It comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself. A settings menu is planned; until then these files are the only way to change the settings.
+The request waits for the turn to end rather than cutting in while tools are still running. It comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
 
 ## Other agents
 

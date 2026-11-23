@@ -36,15 +36,14 @@ describe("ConfigStore reads", () => {
 /* ------------------------------------------------------------------ */
 
 describe("ConfigStore override layers", () => {
-  it("effective settings merge project over global per key; a project switch is ignored", () => {
+  it("effective settings merge project over global for every key", () => {
     const { io } = memIO({
       global: { beConcise: { enabled: true, maxChars: 900, message: "Global wording" } },
       project: { beConcise: { maxChars: 2500, enabled: false } },
       projectStatus: "loaded",
     });
     const store = new ConfigStore(io);
-    // enabled is not a project-allowed key: ignored in the merge.
-    expect(store.beConcise).toEqual({ enabled: true, maxChars: 2500, message: "Global wording" });
+    expect(store.beConcise).toEqual({ enabled: false, maxChars: 2500, message: "Global wording" });
   });
 
   it("an empty project layer is inert: effective settings equal global-only", () => {

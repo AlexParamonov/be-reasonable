@@ -5,15 +5,12 @@
  * Loaded at session_start; saved on every /be-reasonable-settings menu mutation.
  *
  * Two layers: the global file ~/.pi/agent/be-reasonable.json and a trusted
- * project's .pi/be-reasonable.json. The project layer may carry the bound,
- * beConcise.maxChars - never whether the trim runs, nor the words it sends. The
- * effective config merges project over global over built-in defaults. Each file
- * stores only its own keys; the merged config is never written back. What a
- * project setting may change is decided once by `isProjectAllowedBeConciseKey`,
- * which drives the merge and the one load-time warning that names every key left
- * out; the layer keeps the file's own keys, so an inert setting is named rather
- * than erased. A malformed project file is never overwritten, and only a
- * reporting read speaks.
+ * project's .pi/be-reasonable.json, which overrides every setting for that
+ * project. The effective config merges project over global over built-in
+ * defaults. Each file stores only its own keys; the merged config is never
+ * written back, so a project layer keeps the keys it wrote and an unknown key is
+ * named by validation rather than erased. A malformed project file is never
+ * overwritten, and only a reporting read speaks.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -80,17 +77,6 @@ export interface ConfigLoadOptions {
   report?: boolean;
 }
 
-/** `beConcise` keys a project file may set. */
-export const PROJECT_ALLOWED_BE_CONCISE_KEYS = new Set(["maxChars"]);
-
-/** True when a project file may carry this `beConcise` key. */
-export function isProjectAllowedBeConciseKey(key: string): boolean {
-  return PROJECT_ALLOWED_BE_CONCISE_KEYS.has(key);
-}
-
-const PROJECT_KEYS_ARE_GLOBAL =
-  "A project may set only beConcise.maxChars: whether the trim runs, and what it says, are global settings.";
-
 /** A read that reports: the diagnostics reach the operator. */
 const logWarning: WarningSink = (message) => {
   console.warn(message);
@@ -98,27 +84,6 @@ const logWarning: WarningSink = (message) => {
 
 /** The bootstrap read's sink: session_start loads the same layers again and reports them there. */
 const silent: WarningSink = () => {};
-
-/** A project layer's settings that the effective config cannot use, spelled as the file spells them. */
-function ignoredProjectKeys(project: RawConfig): string[] {
-  return Object.keys(project.beConcise ?? {})
-    .filter((key) => !isProjectAllowedBeConciseKey(key))
-    .map((key) => `beConcise.${key}`);
-}
-
-/**
- * One warning naming every project key with no effect, never a value. True when it warned, which is
- * how the loader keeps it to one per load rather than one per merge that happens to drop the key. A silent
- * read neither warns nor consumes that state, so the read that reports still names the keys.
- */
-function warnIgnoredProjectKeys(projectPath: string, project: RawConfig, warn: WarningSink): boolean {
-  const listed = ignoredProjectKeys(project);
-  if (listed.length === 0) return false;
-  warn(
-    `[be-reasonable] Ignoring keys in project config ${projectPath}: ${listed.join(", ")} ${PROJECT_KEYS_ARE_GLOBAL}`,
-  );
-  return true;
-}
 
 /** Read + validate the project file. null = absent, "malformed" = invalid. */
 type ProjectRead = RawConfig | "malformed" | null;
@@ -133,7 +98,6 @@ export function createConfigIO(projectDir?: string): ConfigIO {
   const projectPath = projectDir ? path.join(projectDir, CONFIG_FILE_NAME) : null;
   let projectStatus: ProjectLayerStatus = projectDir ? "absent" : "untrusted";
   let projectRaw: RawConfig | null = null;
-  let ignoredKeysWarned = false;
 
   return {
     load: ({ report = true }: ConfigLoadOptions = {}) => {
@@ -150,9 +114,6 @@ export function createConfigIO(projectDir?: string): ConfigIO {
         } else {
           projectRaw = read;
           projectStatus = "loaded";
-          if (report && !ignoredKeysWarned && warnIgnoredProjectKeys(projectPath, read, warn)) {
-            ignoredKeysWarned = true;
-          }
         }
       } else {
         projectRaw = null;
@@ -177,15 +138,14 @@ export function loadConfig(): BeReasonableConfig {
 
 /**
  * Merge the two raw layers into one raw config: project keys win, absent keys
- * inherit from global. Project keys the layer cannot set are dropped here and
- * named once by the load warning (`ignoredProjectKeys`). Pure — no I/O, and no
- * warning of its own: the store merges again after every mutation, and only a
- * load may report.
+ * inherit from global. A key the layer carries has already been validated, so the
+ * merge takes it as given. Pure — no I/O and no warning of its own: the store
+ * merges again after every mutation, and only a load may report.
  */
 export function mergeLayers(global: RawConfig, project: RawConfig | null): RawConfig {
   const beConcise: Record<string, unknown> = { ...global.beConcise };
   for (const [key, value] of Object.entries(project?.beConcise ?? {})) {
-    if (isProjectAllowedBeConciseKey(key)) beConcise[key] = value;
+    beConcise[key] = value;
   }
   return Object.keys(beConcise).length > 0 ? { beConcise: beConcise as RawBeConcise } : {};
 }

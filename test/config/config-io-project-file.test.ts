@@ -119,29 +119,18 @@ describe("createConfigIO load — two-layer override model", () => {
     }
   });
 
-  it("warns once about project settings with no effect, per IO instance", () => {
-    // enabled is a global-only setting: not allowed in the project file.
-    writeProject({ beConcise: { maxChars: 2500, enabled: true } });
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    try {
-      const io = createConfigIO(projectDir);
-      io.load();
-      io.load();
-      expect(warn).toHaveBeenCalledOnce();
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining("beConcise.enabled"));
-    } finally {
-      warn.mockRestore();
-    }
-  });
-
-  it("warns about a global-only setting carried by the project file and ignores its value", () => {
-    writeGlobal({ beConcise: { enabled: true } });
-    writeProject({ beConcise: { enabled: false } });
+  it("reads every setting a project file carries, with no warning", () => {
+    writeGlobal({ beConcise: { enabled: true, maxChars: 900, message: "Global wording" } });
+    writeProject({ beConcise: { enabled: false, maxChars: 2500, message: "Project wording" } });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const loaded = createConfigIO(projectDir).load();
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining("beConcise.enabled"));
-      expect(mergeLayers(loaded.global, loaded.project).beConcise!.enabled).toBe(true);
+      expect(warn).not.toHaveBeenCalled();
+      expect(mergeLayers(loaded.global, loaded.project).beConcise).toEqual({
+        enabled: false,
+        maxChars: 2500,
+        message: "Project wording",
+      });
     } finally {
       warn.mockRestore();
     }
@@ -164,15 +153,6 @@ describe("mergeLayers — project over global, per key", () => {
     const merged = mergeLayers({ beConcise: { enabled: true, maxChars: 900 } }, { beConcise: { maxChars: 2500 } });
 
     expect(merged.beConcise).toEqual({ enabled: true, maxChars: 2500 });
-  });
-
-  it("drops project settings that are not the bound", () => {
-    const merged = mergeLayers(
-      { beConcise: { enabled: false, maxChars: 900 } },
-      { beConcise: { maxChars: 2500, enabled: true, message: "project wording" } },
-    );
-
-    expect(merged.beConcise).toEqual({ enabled: false, maxChars: 2500 });
   });
 
   it("with no project layer, the global layer passes through", () => {
