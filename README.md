@@ -44,7 +44,7 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 
 `enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten.
 
-The request waits for the turn to end rather than cutting in while tools are still running, arrives as a queued follow-up so the shorter answer is its own turn, and comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself. A settings menu is planned; until then these files are the only way to change the settings.
+The request waits for the turn to end rather than cutting in while tools are still running, and the shorter answer comes as its own turn. It comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself. A settings menu is planned; until then these files are the only way to change the settings.
 
 ## Other agents
 

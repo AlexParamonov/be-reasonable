@@ -63,7 +63,10 @@ export default function (pi: ExtensionAPI) {
     requested = true;
     pi.sendMessage(
       { customType: TRIM_TYPE, content: store.beConcise.message, display: true },
-      { triggerTurn: true, deliverAs: "followUp" },
+      // No deliverAs: the host queues only while streaming, and Pi empties those queues on Esc, dropping
+      // an extension's message without a trace. Idle with triggerTurn it defers past the settled handlers
+      // and starts its own run (agent-session.js sendCustomMessage).
+      { triggerTurn: true },
     );
   });
 }

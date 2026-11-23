@@ -106,7 +106,7 @@ describe("be-concise extension", () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0].message.content).toBe(TRIM_MESSAGE);
-    expect(sent[0].options).toEqual({ triggerTurn: true, deliverAs: "followUp" });
+    expect(sent[0].options).toEqual({ triggerTurn: true });
   });
 
   it("asks once per prompt: an answer that is still long gets no second request", async () => {
