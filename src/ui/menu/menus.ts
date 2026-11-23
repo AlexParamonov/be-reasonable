@@ -47,12 +47,12 @@ export async function showSettingsMenu(ctx: ExtensionCommandContext, store: Conf
     {
       value: "be-concise",
       label: "Be concise",
-      description: "Ask for a shorter answer when the final one runs long",
+      description: "Ask for a shorter answer",
     },
     {
       value: "skills",
       label: "Skills",
-      description: "Switch which skills this extension ships the model is shown",
+      description: "Control which skills the model can call",
     },
   ];
 
