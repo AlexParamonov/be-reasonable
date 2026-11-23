@@ -105,8 +105,10 @@ function beforeSettle(conversation: Turn[]): FakeEvent {
 }
 
 /** One run's prompt options, as pi hands them to before_agent_start, and the skill names it lists. */
-function runOptions(skillNames: string[]): { systemPromptOptions: { skills: { name: string }[] } } {
-  return { systemPromptOptions: { skills: skillNames.map((name) => ({ name })) } };
+function runOptions(skillNames: string[]): {
+  systemPromptOptions: { skills: { name: string }[]; sections: Record<string, string> };
+} {
+  return { systemPromptOptions: { skills: skillNames.map((name) => ({ name })), sections: {} } };
 }
 
 const ALL_SKILLS = ["be-reasonable", "maintain-changelog", "maintain-tests", "be-concise", "my-own-skill"];
@@ -150,6 +152,31 @@ describe("what the model is shown", () => {
     await handlers.get("before_agent_start")?.(event, ctx);
 
     expect(event.systemPromptOptions.skills.map((s) => s.name)).toEqual(ALL_SKILLS);
+  });
+
+  it("reminds the model to apply be-reasonable before it calls work done", async () => {
+    const { pi, handlers } = createFakePi();
+    beReasonable(pi);
+    const ctx = createFakeCtx();
+    await handlers.get("session_start")?.({}, ctx);
+    const event = runOptions(ALL_SKILLS);
+
+    await handlers.get("before_agent_start")?.(event, ctx);
+
+    expect(Object.values(event.systemPromptOptions.sections).join(" ")).toContain("be-reasonable");
+  });
+
+  it("adds no reminder for a skill the model is not shown", async () => {
+    writeConfig({ modelInvocable: { "be-reasonable": false } });
+    const { pi, handlers } = createFakePi();
+    beReasonable(pi);
+    const ctx = createFakeCtx();
+    await handlers.get("session_start")?.({}, ctx);
+    const event = runOptions(ALL_SKILLS);
+
+    await handlers.get("before_agent_start")?.(event, ctx);
+
+    expect(event.systemPromptOptions.sections).toEqual({});
   });
 });
 

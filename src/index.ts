@@ -47,12 +47,19 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("before_agent_start", (event) => {
+    const options = event.systemPromptOptions;
+    // Pi re-normalizes these options for every run, skills and sections included, so both edits belong to the
+    // run and a settings change needs no reload. Neither can name a skill this extension does not ship:
+    // hiddenFromModel reads its own list.
     const hidden = new Set<string>(store.hiddenFromModel);
-    if (hidden.size === 0) return;
-    // Pi re-normalizes these options, the skills array included, for every run, so the edit is the run's own
-    // and switching the setting back restores the listing on the next run. Nothing here can name a skill this
-    // extension does not ship: hiddenFromModel reads its own list.
-    event.systemPromptOptions.skills = event.systemPromptOptions.skills.filter((skill) => !hidden.has(skill.name));
+    if (hidden.size > 0) options.skills = options.skills.filter((skill) => !hidden.has(skill.name));
+    // A listing alone loses to the momentum of finishing the task in front of the model, so name the moment.
+    // It rides a custom section, not promptGuidelines: pi builds the rules section only when no custom system
+    // prompt is configured, and a custom prompt is a normal way to run pi.
+    if (!hidden.has("be-reasonable")) {
+      options.sections.be_reasonable =
+        "Before reporting work complete, load the be-reasonable skill and apply it to the change.";
+    }
   });
 
   pi.on("agent_before_settle", async (event) => {
