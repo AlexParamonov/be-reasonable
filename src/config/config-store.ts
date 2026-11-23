@@ -16,10 +16,10 @@ import {
   type ConfigIO,
   type ConfigTarget,
   type ProjectLayerStatus,
-  type RawBeConcise,
   type RawConfig,
   type BeReasonableConfig,
 } from "./config-io.ts";
+import { HIDABLE_SKILLS, type HidableSkill } from "../skills.ts";
 
 export type { ConfigIO, ConfigTarget, ProjectLayerStatus, RawConfig } from "./config-io.ts";
 
@@ -58,43 +58,54 @@ export class ConfigStore {
     return this.projectStatus === "loaded" || this.projectStatus === "absent";
   }
 
-  /** True when the project file itself sets this setting, which is what the menu tags. */
-  setInProject(key: keyof RawBeConcise): boolean {
-    return this.projectRaw?.beConcise?.[key] !== undefined;
+  /** True when the project file itself sets this key, which is what the menu tags. */
+  setInProject(section: "beConcise" | "modelInvocable", key: string): boolean {
+    return (this.projectRaw?.[section] as Record<string, unknown> | undefined)?.[key] !== undefined;
   }
 
   get beConcise(): BeReasonableConfig["beConcise"] {
     return this.config.beConcise;
   }
 
+  /** Whether the model is shown each shipped skill in its skill listing. */
+  get modelInvocable(): Record<HidableSkill, boolean> {
+    return this.config.modelInvocable;
+  }
+
+  /** Shipped skills the model must not be shown, in the order the settings menu lists them. */
+  get hiddenFromModel(): HidableSkill[] {
+    return HIDABLE_SKILLS.filter((name) => !this.config.modelInvocable[name]);
+  }
+
   // ── Mutations ───────────────────────────────────────────────
 
   setBeConciseEnabled(enabled: boolean | undefined, target: ConfigTarget): void {
-    this.applyBeConciseWrite(target, (layer) => {
-      if (enabled === undefined) delete layer.enabled;
-      else layer.enabled = enabled;
-    });
+    this.applyWrite("beConcise", "enabled", enabled, target);
   }
 
   setBeConciseMaxChars(maxChars: number | undefined, target: ConfigTarget): void {
-    this.applyBeConciseWrite(target, (layer) => {
-      if (maxChars === undefined) delete layer.maxChars;
-      else layer.maxChars = maxChars;
-    });
+    this.applyWrite("beConcise", "maxChars", maxChars, target);
   }
 
   setBeConciseMessage(message: string | undefined, target: ConfigTarget): void {
-    this.applyBeConciseWrite(target, (layer) => {
-      if (message === undefined) delete layer.message;
-      else layer.message = message;
-    });
+    this.applyWrite("beConcise", "message", message, target);
   }
 
-  private applyBeConciseWrite(target: ConfigTarget, write: (layer: RawBeConcise) => void): void {
+  /** Show or hide one shipped skill to the model; undefined clears the layer's switch. */
+  setModelInvocable(skill: HidableSkill, value: boolean | undefined, target: ConfigTarget): void {
+    this.applyWrite("modelInvocable", skill, value, target);
+  }
+
+  /**
+   * Set or clear one key of one raw layer, then persist that layer alone: a layer keeps only its own keys,
+   * so no merged or default value is ever written back.
+   */
+  private applyWrite(section: "beConcise" | "modelInvocable", key: string, value: unknown, target: ConfigTarget): void {
     const layer = this.layerFor(target);
     if (!layer) return;
-    layer.beConcise ??= {};
-    write(layer.beConcise);
+    const raw = (layer[section] ??= {}) as Record<string, unknown>;
+    if (value === undefined) delete raw[key];
+    else raw[key] = value;
     if (target === "global") this.io.saveGlobal(layer);
     else this.io.saveProject(layer);
     this.rebuildEffective();

@@ -32,7 +32,7 @@ export default function (pi: ExtensionAPI) {
   const store = new ConfigStore();
 
   pi.registerCommand("be-reasonable-settings", {
-    description: "Configure be-reasonable: be concise settings",
+    description: "Configure be-reasonable: be concise settings, skill visibility",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       await showSettingsMenu(ctx, store);
     },
@@ -44,6 +44,15 @@ export default function (pi: ExtensionAPI) {
     store.setProjectDir(ctx.isProjectTrusted() ? join(ctx.cwd, ".pi") : undefined);
     store.reload();
     trimWanted = false;
+  });
+
+  pi.on("before_agent_start", (event) => {
+    const hidden = new Set<string>(store.hiddenFromModel);
+    if (hidden.size === 0) return;
+    // Pi re-normalizes these options, the skills array included, for every run, so the edit is the run's own
+    // and switching the setting back restores the listing on the next run. Nothing here can name a skill this
+    // extension does not ship: hiddenFromModel reads its own list.
+    event.systemPromptOptions.skills = event.systemPromptOptions.skills.filter((skill) => !hidden.has(skill.name));
   });
 
   pi.on("agent_before_settle", async (event) => {

@@ -9,16 +9,12 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { SettingsList, type SettingItem } from "@earendil-works/pi-tui";
-import { buildSettingsListTheme, type Theme } from "./helpers.ts";
+import { buildSettingsListTheme, sourceTag, type Theme } from "./helpers.ts";
 import { createInputSubmenu, createNumericSubmenu } from "./submenus/numeric-input.ts";
-import { createLevelPickerSubmenu, createTargetSelectSubmenu, type SetTarget } from "./submenus/target-select.ts";
+import { createBooleanLevelSubmenu } from "./submenus/boolean-setting.ts";
+import { createTargetSelectSubmenu, type SetTarget } from "./submenus/target-select.ts";
 import { SettingsListWrapper } from "./wrappers/settings-list.ts";
 import type { ConfigStore } from "../../config/config-store.ts";
-
-/** The tag a row carries when the project file provides its value. */
-function sourceTag(store: ConfigStore, key: "enabled" | "maxChars" | "message"): string {
-  return store.setInProject(key) ? " [project]" : "";
-}
 
 /** Pick the level first, then the value: every write names the layer it landed in. */
 function levelSubmenu(
@@ -33,26 +29,24 @@ function levelSubmenu(
     if (key === "enabled") store.setBeConciseEnabled(undefined, target);
     if (key === "maxChars") store.setBeConciseMaxChars(undefined, target);
     if (key === "message") store.setBeConciseMessage(undefined, target);
+  };
+
+  // The switch step reports its own write; the two value steps below name their clear here.
+  const clearAndNotify = (target: SetTarget) => {
+    clear(target);
     ctx.ui.notify(`${label} cleared (${target})`, "info");
   };
 
   if (key === "enabled") {
-    return createTargetSelectSubmenu({
+    return createBooleanLevelSubmenu({
+      ctx,
       theme,
       projectOffered: store.projectTargetOffered,
-      showClear: true,
-      onPick: (target, done) =>
-        createLevelPickerSubmenu({
-          theme,
-          items: [
-            { id: "ON", label: "On", currentValue: "", description: "Ask once the answer passes the bound." },
-            { id: "OFF", label: "Off", currentValue: "", description: "Never ask on your behalf." },
-          ],
-          onPick: (value) => {
-            store.setBeConciseEnabled(value === "ON", target);
-            ctx.ui.notify(`${label} ${value} (${target})`, "info");
-          },
-        })(initial, done),
+      label,
+      initial,
+      onDescription: "Ask once the answer passes the bound.",
+      offDescription: "Never ask on your behalf.",
+      onChange: (value, target) => store.setBeConciseEnabled(value, target),
       onClear: clear,
     });
   }
@@ -67,7 +61,7 @@ function levelSubmenu(
           store.setBeConciseMaxChars(parsed, target);
           ctx.ui.notify(`${label} set to ${parsed} chars (${target})`, "info");
         })(initial, done),
-      onClear: clear,
+      onClear: clearAndNotify,
     });
   }
 
@@ -83,7 +77,7 @@ function levelSubmenu(
         }
         done(value);
       }),
-    onClear: clear,
+    onClear: clearAndNotify,
   });
 }
 
@@ -119,7 +113,7 @@ function buildItems(ctx: ExtensionCommandContext, store: ConfigStore, theme: The
   return rows.map((row) => ({
     id: row.key,
     label: row.label,
-    currentValue: `${row.value}${sourceTag(store, row.key)}`,
+    currentValue: `${row.value}${sourceTag(store, "beConcise", row.key)}`,
     submenu: levelSubmenu(ctx, store, theme, row.key, row.notify, row.value),
     description: row.description,
   }));

@@ -10,7 +10,8 @@
  */
 import { Type, type TSchema } from "typebox";
 import { Check } from "typebox/value";
-import type { RawConfig } from "./config-io.ts";
+import { isHidableSkill } from "../skills.ts";
+import type { RawConfig, RawModelInvocable } from "./config-io.ts";
 
 /** One known key's runtime rule plus its human-readable expected shape. */
 interface KeySpec {
@@ -114,7 +115,7 @@ function validateSections(raw: unknown, reader: LayerReader): RawConfig {
   }
 
   for (const key of Object.keys(raw)) {
-    if (key !== "beConcise") warnIncompatible(reader, key, raw[key], "a known section");
+    if (key !== "beConcise" && key !== "modelInvocable") warnIncompatible(reader, key, raw[key], "a known section");
   }
 
   if (raw.beConcise !== undefined) {
@@ -122,7 +123,31 @@ function validateSections(raw: unknown, reader: LayerReader): RawConfig {
     if (Object.keys(beConcise).length > 0) cleaned.beConcise = beConcise;
   }
 
+  if (raw.modelInvocable !== undefined) {
+    const modelInvocable = cleanModelInvocableSection(raw.modelInvocable, reader);
+    if (Object.keys(modelInvocable).length > 0) cleaned.modelInvocable = modelInvocable;
+  }
+
   return cleaned;
+}
+
+/** Keep a switch for every shipped skill this file names correctly, warn and drop the rest. */
+function cleanModelInvocableSection(section: unknown, reader: LayerReader): RawModelInvocable {
+  const kept: RawModelInvocable = {};
+  if (!isPlainObject(section)) {
+    warnIncompatible(reader, "modelInvocable", section, EXPECTED_OBJECT);
+    return kept;
+  }
+  for (const [key, value] of Object.entries(section)) {
+    if (value === undefined) continue;
+    if (!isHidableSkill(key)) {
+      warnIncompatible(reader, `modelInvocable.${key}`, value, "a skill this extension ships");
+      continue;
+    }
+    if (isValidValue(BOOL, value)) kept[key] = value as boolean;
+    else warnIncompatible(reader, `modelInvocable.${key}`, value, BOOL.expected);
+  }
+  return kept;
 }
 
 /** Keep valid `beConcise` settings, warn and drop the rest. */

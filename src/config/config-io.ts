@@ -17,6 +17,7 @@ import * as path from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { isPlainObject, validateProjectLayer, validateRawLayer } from "./config-validation.ts";
 import type { WarningSink } from "./config-validation.ts";
+import { HIDABLE_SKILLS, type HidableSkill } from "../skills.ts";
 
 /** File name of the config in both the global agent dir and a project's .pi dir. */
 const CONFIG_FILE_NAME = "be-reasonable.json";
@@ -43,6 +44,9 @@ export interface RawBeConcise {
   message?: string;
 }
 
+/** Raw `modelInvocable` section: a skill name is present only where that layer switches it. */
+export type RawModelInvocable = Partial<Record<HidableSkill, boolean>>;
+
 export interface BeConciseConfig {
   enabled: boolean;
   maxChars: number;
@@ -51,11 +55,14 @@ export interface BeConciseConfig {
 
 export interface BeReasonableConfig {
   beConcise: BeConciseConfig;
+  /** Whether the model is shown each shipped skill in its skill listing. */
+  modelInvocable: Record<HidableSkill, boolean>;
 }
 
 /** Raw config file contents: only the keys that file carries. */
 export interface RawConfig {
   beConcise?: RawBeConcise;
+  modelInvocable?: RawModelInvocable;
 }
 
 /** Result of a load: the two raw layers plus the project layer's status. */
@@ -158,7 +165,21 @@ export function mergeLayers(global: RawConfig, project: RawConfig | null): RawCo
   for (const [key, value] of Object.entries(project?.beConcise ?? {})) {
     beConcise[key] = value;
   }
-  return Object.keys(beConcise).length > 0 ? { beConcise: beConcise as RawBeConcise } : {};
+  const modelInvocable: Record<string, unknown> = { ...global.modelInvocable };
+  for (const [key, value] of Object.entries(project?.modelInvocable ?? {})) {
+    modelInvocable[key] = value;
+  }
+  const merged: RawConfig = {};
+  if (Object.keys(beConcise).length > 0) merged.beConcise = beConcise as RawBeConcise;
+  if (Object.keys(modelInvocable).length > 0) merged.modelInvocable = modelInvocable as RawModelInvocable;
+  return merged;
+}
+
+/** Every shipped skill's switch: a layer's `false` is the only way a model is not shown it. */
+function mergeModelInvocable(raw: RawModelInvocable = {}): Record<HidableSkill, boolean> {
+  const effective = {} as Record<HidableSkill, boolean>;
+  for (const name of HIDABLE_SKILLS) effective[name] = raw[name] ?? true;
+  return effective;
 }
 
 /** Bake hardcoded defaults into a raw config. */
@@ -170,6 +191,7 @@ export function mergeDefaults(raw: RawConfig): BeReasonableConfig {
       maxChars: beConcise.maxChars ?? DEFAULT_BE_CONCISE.maxChars,
       message: beConcise.message ?? DEFAULT_BE_CONCISE.message,
     },
+    modelInvocable: mergeModelInvocable(raw.modelInvocable),
   };
 }
 
@@ -207,6 +229,9 @@ function readProjectRaw(projectPath: string, warn: WarningSink): ProjectRead {
   const raw = parsed as RawConfig;
   if (raw.beConcise !== undefined && !isPlainObject(raw.beConcise)) {
     return malformedSection(projectPath, "beConcise", warn);
+  }
+  if (raw.modelInvocable !== undefined && !isPlainObject(raw.modelInvocable)) {
+    return malformedSection(projectPath, "modelInvocable", warn);
   }
   return validateProjectLayer(raw, projectPath, warn);
 }

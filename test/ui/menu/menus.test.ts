@@ -37,9 +37,14 @@ vi.mock("../../../src/ui/menu/menu-be-concise.js", () => ({
   showBeConciseSettingsMenu: vi.fn(),
 }));
 
+vi.mock("../../../src/ui/menu/menu-skills.js", () => ({
+  showSkillsSettingsMenu: vi.fn(),
+}));
+
 // Import AFTER mock setup
 import { showSettingsMenu } from "../../../src/ui/menu/menus.js";
 import { showBeConciseSettingsMenu } from "../../../src/ui/menu/menu-be-concise.js";
+import { showSkillsSettingsMenu } from "../../../src/ui/menu/menu-skills.js";
 
 /** Pick an entry from the rendered list, then escape the dispatcher. */
 function ctxChoosing(value: string | undefined) {
@@ -75,11 +80,11 @@ describe("showSettingsMenu — SelectList dispatcher", () => {
     expect(ctx.ui.select).not.toHaveBeenCalled();
   });
 
-  it("shows the be-concise entry", async () => {
+  it("shows the settings entries this extension offers", async () => {
     const store = new ConfigStore(memIO().io);
     await showSettingsMenu(createMockCtx(), store);
     expect(selectListCalls.length).toBe(1);
-    expect(selectListCalls[0].items.map((i) => i.value)).toEqual(["be-concise"]);
+    expect(selectListCalls[0].items.map((i) => i.value)).toEqual(["be-concise", "skills"]);
   });
 
   it("Escape closes the menu", async () => {
@@ -97,5 +102,13 @@ describe("showSettingsMenu — SelectList dispatcher", () => {
     // Dispatch ran (2nd call = be-concise menu) and the loop re-invoked after it
     expect(ctx.ui.custom).toHaveBeenCalledTimes(2);
     expect(showBeConciseSettingsMenu).toHaveBeenCalledWith(ctx, store);
+  });
+
+  it("opens skills settings with the caller's store", async () => {
+    const store = new ConfigStore(memIO().io);
+    const ctx = ctxChoosing("skills");
+    await showSettingsMenu(ctx, store);
+    expect(ctx.ui.custom).toHaveBeenCalledTimes(2);
+    expect(showSkillsSettingsMenu).toHaveBeenCalledWith(ctx, store);
   });
 });

@@ -23,7 +23,6 @@ pi install -l npm:be-reasonable
 ### Skills
 
 Pi selects a skill when the task matches its description, or you can invoke it directly:
-
 - `/skill:be-reasonable` reviews unnecessary complexity.
 - `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
 - `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`. It sets `disable-model-invocation: true`, so an agent never selects it on its own; run it yourself, and pass the change to document or nothing at all to tidy the Unreleased section.
@@ -49,6 +48,23 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 `/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides is shown as `500 [project]`, so you can tell an override from an inherited value, and every change says which file it landed in.
 
 The request waits for the turn to end rather than cutting in while tools are still running. It comes once per answer: the answer to a request is never asked again, and a later run in the same turn, one a background notification started for example, gets its own request. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
+
+### Skill visibility
+
+Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn for something you never let the agent choose. Switch it off in `/be-reasonable-settings` under **Skills**, one row per skill:
+
+```json
+// ~/.pi/agent/be-reasonable.json
+{
+  "modelInvocable": {
+    "maintain-tests": false
+  }
+}
+```
+
+A switched-off skill leaves the model's skill listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. Rows use the same Global and Project levels as the be-concise settings, so one repository can show the model a skill the rest of your work keeps to yourself. A project's config can only switch skills this package ships, never your own.
+
+`be-concise` and `maintain-changelog` have no row. They ship with `disable-model-invocation: true` in their own `SKILL.md`, which is pi's own switch and applies before ours, so a setting could never show them. Edit that file if you want one of them offered to the model, and note it is the file every agent you install these skills from reads, not just pi.
 
 ## Other agents
 

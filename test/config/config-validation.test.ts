@@ -1,6 +1,34 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { validateRawLayer } from "../../src/config/config-validation.js";
 
+describe("validateRawLayer — modelInvocable", () => {
+  it("keeps a switch for a skill this extension ships", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(validateRawLayer({ modelInvocable: { "maintain-tests": false } }, "/g.json")).toEqual({
+        modelInvocable: { "maintain-tests": false },
+      });
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("drops a switch for a skill it does not ship, and a value that is not a switch", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(
+        validateRawLayer({ modelInvocable: { "some-other-skill": false, "be-reasonable": "no" } }, "/g.json"),
+      ).toEqual({});
+      expect(warn).toHaveBeenCalledTimes(2);
+      expect(warn.mock.calls[0][0]).toContain("modelInvocable.some-other-skill");
+      expect(warn.mock.calls[1][0]).toContain("modelInvocable.be-reasonable");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
 describe("validateRawLayer — beConcise", () => {
   it("drops a value of the wrong type with a warning and keeps its valid siblings", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

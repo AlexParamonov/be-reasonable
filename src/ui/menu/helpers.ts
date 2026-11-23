@@ -4,6 +4,12 @@
  * separator-skip installation.
  */
 import type { SettingsListTheme } from "@earendil-works/pi-tui";
+import type { ConfigStore } from "../../config/config-store.ts";
+
+/** The tag a settings row carries when the project file provides its value. */
+export function sourceTag(store: ConfigStore, section: "beConcise" | "modelInvocable", key: string): string {
+  return store.setInProject(section, key) ? " [project]" : "";
+}
 
 /** The theme members this layer paints with: pi passes more, these two are all a menu needs. */
 export type Theme = { fg(color: string, text: string): string; bold(text: string): string };

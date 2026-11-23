@@ -37,10 +37,10 @@ const ASKED: Turn[] = [
   { role: "assistant", text: LONG },
 ];
 
-function writeConfig(): void {
+function writeConfig(extra: Record<string, unknown> = {}): void {
   writeFileSync(
     GLOBAL_CONFIG_PATH,
-    JSON.stringify({ beConcise: { enabled: true, maxChars: 20, message: TRIM_MESSAGE } }),
+    JSON.stringify({ beConcise: { enabled: true, maxChars: 20, message: TRIM_MESSAGE }, ...extra }),
   );
 }
 
@@ -48,7 +48,6 @@ interface Sent {
   message: { customType: string; content: string; display: boolean };
   options?: { triggerTurn?: boolean; deliverAs?: string };
 }
-
 type FakeEvent = Record<string, unknown>;
 type FakeHandler = (event: FakeEvent, ctx: ExtensionContext) => Promise<unknown>;
 
@@ -105,15 +104,55 @@ function beforeSettle(conversation: Turn[]): FakeEvent {
   };
 }
 
+/** One run's prompt options, as pi hands them to before_agent_start, and the skill names it lists. */
+function runOptions(skillNames: string[]): { systemPromptOptions: { skills: { name: string }[] } } {
+  return { systemPromptOptions: { skills: skillNames.map((name) => ({ name })) } };
+}
+
+const ALL_SKILLS = ["be-reasonable", "maintain-changelog", "maintain-tests", "be-concise", "my-own-skill"];
+
+// Every test writes its own global config file and leaves none behind, so no test sees another's layers.
+beforeEach(() => {
+  writeConfig();
+});
+
+afterEach(() => {
+  rmSync(GLOBAL_CONFIG_PATH, { force: true });
+});
+
+describe("what the model is shown", () => {
+  it("drops a skill the config hides from the model's listing", async () => {
+    writeConfig({ modelInvocable: { "maintain-tests": false } });
+    const { pi, handlers } = createFakePi();
+    beReasonable(pi);
+    const ctx = createFakeCtx();
+    await handlers.get("session_start")?.({}, ctx);
+    const event = runOptions(ALL_SKILLS);
+
+    await handlers.get("before_agent_start")?.(event, ctx);
+
+    expect(event.systemPromptOptions.skills.map((s) => s.name)).toEqual([
+      "be-reasonable",
+      "maintain-changelog",
+      "be-concise",
+      "my-own-skill",
+    ]);
+  });
+
+  it("keeps the listing whole when nothing is hidden", async () => {
+    const { pi, handlers } = createFakePi();
+    beReasonable(pi);
+    const ctx = createFakeCtx();
+    await handlers.get("session_start")?.({}, ctx);
+    const event = runOptions(ALL_SKILLS);
+
+    await handlers.get("before_agent_start")?.(event, ctx);
+
+    expect(event.systemPromptOptions.skills.map((s) => s.name)).toEqual(ALL_SKILLS);
+  });
+});
+
 describe("be-concise extension", () => {
-  beforeEach(() => {
-    writeConfig();
-  });
-
-  afterEach(() => {
-    rmSync(GLOBAL_CONFIG_PATH, { force: true });
-  });
-
   afterAll(() => {
     rmSync(MOCK_AGENT_DIR, { recursive: true, force: true });
   });

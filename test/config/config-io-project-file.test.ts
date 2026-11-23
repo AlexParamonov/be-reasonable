@@ -105,7 +105,7 @@ describe("createConfigIO load — two-layer override model", () => {
   });
 
   it("treats structurally invalid project files as malformed", () => {
-    const violations = [{ beConcise: "nope" }, [1, 2], "text", 42, null];
+    const violations = [{ beConcise: "nope" }, { modelInvocable: "nope" }, [1, 2], "text", 42, null];
     for (const bad of violations) {
       writeProject(bad);
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

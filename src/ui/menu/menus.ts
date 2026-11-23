@@ -8,6 +8,7 @@
  * Module structure:
  *   - helpers.ts: shared helpers (buildSettingsListTheme, buildSelectListTheme, validateNumeric)
  *   - menu-be-concise.ts: showBeConciseSettingsMenu
+ *   - menu-skills.ts: showSkillsSettingsMenu
  *   - menus.ts (this file): dispatcher — settings menu
  */
 
@@ -16,6 +17,7 @@ import { SelectList, type SelectItem } from "@earendil-works/pi-tui";
 import { buildSelectListTheme } from "./helpers.ts";
 import { SettingsListWrapper } from "./wrappers/settings-list.ts";
 import { showBeConciseSettingsMenu } from "./menu-be-concise.ts";
+import { showSkillsSettingsMenu } from "./menu-skills.ts";
 import type { ConfigStore } from "../../config/config-store.ts";
 
 /**
@@ -47,12 +49,20 @@ export async function showSettingsMenu(ctx: ExtensionCommandContext, store: Conf
       label: "Be concise",
       description: "Ask for a shorter answer when the final one runs long",
     },
+    {
+      value: "skills",
+      label: "Skills",
+      description: "Switch which skills this extension ships the model is shown",
+    },
   ];
 
   await runSelectMenu(ctx, "Settings", items, async (choice) => {
     switch (choice) {
       case "be-concise":
         await showBeConciseSettingsMenu(ctx, store);
+        break;
+      case "skills":
+        await showSkillsSettingsMenu(ctx, store);
         break;
     }
   });
