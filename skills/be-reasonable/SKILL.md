@@ -1,6 +1,6 @@
 ---
 name: be-reasonable
-description: Reviews a change for unnecessary complexity and simpler alternatives that stay correct. Use after every plan and after finishing implementation.
+description: Use after writing a plan or finishing code, and before calling work done. Keeps code maintainable and plans reasonable.
 ---
 
 Is the solution simple and maintainable?
