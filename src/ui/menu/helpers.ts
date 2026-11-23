@@ -5,6 +5,9 @@
  */
 import type { SettingsListTheme } from "@earendil-works/pi-tui";
 
+/** The theme members this layer paints with: pi passes more, these two are all a menu needs. */
+export type Theme = { fg(color: string, text: string): string; bold(text: string): string };
+
 /**
  * Item id that marks a separator/section-header row in SettingsList/SelectList
  * item arrays. Menus push these; the separator-skip mechanism (installSeparatorSkip)
@@ -65,10 +68,7 @@ export function installSeparatorSkip(list: any): void {
   list[rawIndex] = initialIndex;
 }
 /** Build a SettingsListTheme from a pi-coding-agent Theme. */
-export function buildSettingsListTheme(theme: {
-  fg(color: string, text: string): string;
-  bold(text: string): string;
-}): SettingsListTheme {
+export function buildSettingsListTheme(theme: Theme): SettingsListTheme {
   return {
     label: (text, selected) => (selected ? theme.fg("accent", text) : text),
     value: (text, selected) => (selected ? theme.fg("accent", text) : theme.fg("muted", text)),
@@ -96,10 +96,7 @@ export function validateNumeric(value: string, min: number): number | undefined 
  * Build a SelectListTheme from a pi-coding-agent Theme.
  * Produces the same visual style as buildSettingsListTheme: → cursor, accent colors, muted descriptions.
  */
-export function buildSelectListTheme(theme: {
-  fg(color: string, text: string): string;
-  bold(text: string): string;
-}): import("@earendil-works/pi-tui").SelectListTheme {
+export function buildSelectListTheme(theme: Theme): import("@earendil-works/pi-tui").SelectListTheme {
   return {
     selectedPrefix: () => theme.fg("accent", "→ "),
     selectedText: (text) => theme.fg("accent", text),

@@ -9,16 +9,15 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { SettingsList, type SettingItem } from "@earendil-works/pi-tui";
-import { buildSettingsListTheme } from "./helpers.ts";
+import { buildSettingsListTheme, type Theme } from "./helpers.ts";
 import { createInputSubmenu, createNumericSubmenu } from "./submenus/numeric-input.ts";
 import { createLevelPickerSubmenu, createTargetSelectSubmenu, type SetTarget } from "./submenus/target-select.ts";
 import { SettingsListWrapper } from "./wrappers/settings-list.ts";
 import type { ConfigStore } from "../../config/config-store.ts";
-import type { Theme } from "../types.ts";
 
 /** The tag a row carries when the project file provides its value. */
 function sourceTag(store: ConfigStore, key: "enabled" | "maxChars" | "message"): string {
-  return store.layerCarries(key).project ? " [project]" : "";
+  return store.setInProject(key) ? " [project]" : "";
 }
 
 /** Pick the level first, then the value: every write names the layer it landed in. */
@@ -92,36 +91,38 @@ function levelSubmenu(
  * Build the flat item list.
  */
 function buildItems(ctx: ExtensionCommandContext, store: ConfigStore, theme: Theme): SettingItem[] {
-  const enabled = store.beConcise.enabled ? "ON" : "OFF";
-  const maxChars = String(store.beConcise.maxChars);
-  const message = store.beConcise.message;
-  const enabledValue = `${enabled}${sourceTag(store, "enabled")}`;
-  const boundValue = `${maxChars}${sourceTag(store, "maxChars")}`;
-  const messageValue = `${message}${sourceTag(store, "message")}`;
-  const items: SettingItem[] = [
+  const { enabled, maxChars, message } = store.beConcise;
+  const rows = [
     {
-      id: "enabled",
+      key: "enabled",
       label: "Ask for a shorter answer",
-      currentValue: enabledValue,
-      submenu: levelSubmenu(ctx, store, theme, "enabled", "Be concise", enabled),
+      notify: "Be concise",
+      value: enabled ? "ON" : "OFF",
       description: "When ON, a final answer whose prose passes the bound gets one trim request.",
     },
     {
-      id: "maxChars",
+      key: "maxChars",
       label: "Answer prose bound (chars)",
-      currentValue: boundValue,
-      submenu: levelSubmenu(ctx, store, theme, "maxChars", "Answer prose bound", maxChars),
+      notify: "Answer prose bound",
+      value: String(maxChars),
       description: "Characters of prose allowed before a trim is requested; code blocks and tables are not counted.",
     },
     {
-      id: "message",
+      key: "message",
       label: "Trim request",
-      currentValue: messageValue,
-      submenu: levelSubmenu(ctx, store, theme, "message", "Trim request", message),
+      notify: "Trim request",
+      value: message,
       description: "The instruction sent to the model when the bound is passed.",
     },
-  ];
-  return items;
+  ] as const;
+
+  return rows.map((row) => ({
+    id: row.key,
+    label: row.label,
+    currentValue: `${row.value}${sourceTag(store, row.key)}`,
+    submenu: levelSubmenu(ctx, store, theme, row.key, row.notify, row.value),
+    description: row.description,
+  }));
 }
 
 export async function showBeConciseSettingsMenu(ctx: ExtensionCommandContext, store: ConfigStore): Promise<void> {

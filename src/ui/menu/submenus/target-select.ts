@@ -3,22 +3,14 @@
  *
  * Used by the settings menus whenever a value can live in more than one layer.
  * The project entry is offered only when the store says the project target is
- * available. With an opt-in availableLevels list, a level is offered only when
- * it carries the setting.
+ * available.
  */
 
 import { SettingsList, type Component, type SettingItem } from "@earendil-works/pi-tui";
-import type { Theme } from "../../types.ts";
-import { buildSettingsListTheme } from "../helpers.ts";
+import { buildSettingsListTheme, type Theme } from "../helpers.ts";
 
 /** The layer a set or clear applies to. */
 export type SetTarget = "global" | "project";
-
-/** Per-level availability of the setting a clear flow removes. */
-export interface AvailableLevels {
-  global: boolean;
-  project: boolean;
-}
 
 /** Level entries with per-context persistence notes (set vs clear pickers). */
 const LEVEL_ENTRIES: Record<SetTarget, { label: string; setDescription: string; clearDescription: string }> = {
@@ -50,9 +42,9 @@ function levelItem(target: SetTarget, clearMode: boolean): SettingItem {
  * matching the picker's action) plus an optional "Clear..." row. Clear mode
  * flips the notes to "Removes from..." (see LEVEL_ENTRIES).
  */
-export function buildLevelItems(options: {
+function buildLevelItems(options: {
   /** Which levels get a row. */
-  offered: AvailableLevels;
+  offered: { global: boolean; project: boolean };
   /** Description wording: set ("Saves to...") vs clear ("Removes from..."). */
   clearMode?: boolean;
   includeClear?: boolean;
@@ -106,17 +98,8 @@ export interface TargetSelectSubmenuOptions {
   theme: Theme;
   /** Show the project entry (trusted project with a valid or absent config file). */
   projectOffered: boolean;
-  /** Include the "All levels" entry (clears only). Default: false. */
-  includeAll?: boolean;
   /** Append a "Clear..." entry that opens a nested per-level clear picker. Default: false. */
   showClear?: boolean;
-  /**
-   * Opt-in level availability (model-settings clear pickers only): when set,
-   * each level is offered only if listed, and "All levels" only if at least
-   * two are. When omitted, every structurally available level is offered
-   * (the other menus' current behavior).
-   */
-  availableLevels?: AvailableLevels;
   /**
    * Apply the pick. Return a Component to chain into (value input, confirm);
    * return void to close the submenu (the settings list rebuilds).
@@ -129,14 +112,9 @@ export interface TargetSelectSubmenuOptions {
 export function createTargetSelectSubmenu(
   options: TargetSelectSubmenuOptions,
 ): (currentValue: string, done: (selectedValue?: string) => void) => Component {
-  const avail = options.availableLevels;
-  // Every clear picker includes "All levels" (set pickers never do), so it
-  // selects the description wording: "Saves to..." vs "Removes from...".
   const clearMode = options.showClear === true;
-  const globalOffered = !avail || avail.global;
-  const projectOffered = options.projectOffered && (!avail || avail.project);
   const items = buildLevelItems({
-    offered: { global: globalOffered, project: projectOffered },
+    offered: { global: true, project: options.projectOffered },
     clearMode,
     includeClear: options.showClear === true,
   });
@@ -150,7 +128,6 @@ export function createTargetSelectSubmenu(
         return createClearPickerSubmenu({
           theme: options.theme,
           projectOffered: options.projectOffered,
-          availableLevels: options.availableLevels,
           onClear: (target) => options.onClear?.(target),
         })("", subDone);
       }
@@ -160,19 +137,16 @@ export function createTargetSelectSubmenu(
 }
 
 /**
- * Nested per-level clear picker ("Clear..." → pick a level): the shared target
- * picker restricted to levels that carry the setting.
+ * Nested per-level clear picker ("Clear..." → pick a level).
  */
-export function createClearPickerSubmenu(options: {
+function createClearPickerSubmenu(options: {
   theme: Theme;
   projectOffered: boolean;
-  availableLevels?: AvailableLevels;
   onClear: (target: SetTarget) => void;
 }): (currentValue: string, done: (selectedValue?: string) => void) => Component {
   return createTargetSelectSubmenu({
     theme: options.theme,
     projectOffered: options.projectOffered,
-    availableLevels: options.availableLevels,
     onPick: (target) => options.onClear(target),
   });
 }

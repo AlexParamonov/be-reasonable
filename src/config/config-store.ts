@@ -58,12 +58,9 @@ export class ConfigStore {
     return this.projectStatus === "loaded" || this.projectStatus === "absent";
   }
 
-  /** Which layers carry one setting: drives the menu's source tag and its clear rows. */
-  layerCarries(key: keyof RawBeConcise): { global: boolean; project: boolean } {
-    return {
-      global: this.globalRaw.beConcise?.[key] !== undefined,
-      project: this.projectRaw?.beConcise?.[key] !== undefined,
-    };
+  /** True when the project file itself sets this setting, which is what the menu tags. */
+  setInProject(key: keyof RawBeConcise): boolean {
+    return this.projectRaw?.beConcise?.[key] !== undefined;
   }
 
   get beConcise(): BeReasonableConfig["beConcise"] {
