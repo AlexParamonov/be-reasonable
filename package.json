@@ -1,26 +1,56 @@
 {
   "name": "be-reasonable",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Simplify code without sacrificing correctness, keep tests focused on behavior, keep changelogs readable.",
+  "keywords": [
+    "agent-skills",
+    "ai-agents",
+    "changelog",
+    "code-review",
+    "maintainability",
+    "pi",
+    "simplicity",
+    "skills",
+    "test-quality",
+    "testing"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AlexParamonov/be-reasonable.git"
   },
-  "keywords": [
-    "ai-agents",
-    "agent-skills",
-    "pi",
+  "files": [
     "skills",
-    "simplicity",
-    "maintainability",
-    "code-review",
-    "testing",
-    "test-quality",
-    "changelog"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
-  "files": ["skills"],
+  "scripts": {
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "test": "vp test run"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^1.6.0",
+    "@earendil-works/pi-tui": "^1.6.0",
+    "@types/node": "^24.19.2",
+    "typebox": "^1.4.7",
+    "vite-plus": "^1.3.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=0.82.0",
+    "@earendil-works/pi-coding-agent": ">=1.5.1",
+    "@earendil-works/pi-tui": ">=0.82.0",
+    "typebox": ">=1.3.7"
+  },
   "pi": {
-    "skills": ["./skills"]
+    "skills": [
+      "./skills"
+    ]
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.3.0"
   }
 }
