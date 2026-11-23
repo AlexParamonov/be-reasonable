@@ -1,6 +1,6 @@
 ---
 name: maintain-changelog
-description: Write or tidy CHANGELOG.md. One bullet per observable change, proof linked not inlined. Rewrites the Unreleased section without losing a fact, and never edits a released section.
+description: Write or tidy CHANGELOG.md with one bullet per observable change and proof linked, not inlined.
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ moment a sentence stops telling them something they can act on. Everything else 
 commit message, an ADR or a design doc.
 
 If the request named a change, document that change. If it named nothing, tidy the Unreleased
-section.
+section. If it asked for a release, cut the version.
 
 ## Rules
 
@@ -33,6 +33,8 @@ section.
    entry that no longer matches the code is corrected or dropped, and the mismatch reported.
 8. A released section is immutable: never edit, merge, reorder or delete anything below a
    `## [x.y.z]` heading. Only `## [Unreleased]` is a draft.
+   Failure: mid-rewrite you find a wrong entry under `[1.14.0]` and think "fix that while I am
+   here". That version shipped with those words: leave it, and report what you saw instead.
 9. Cut a release by inserting `## [x.y.z] - YYYY-MM-DD` directly below `## [Unreleased]`, so
    the entries fall under the version and Unreleased is left empty. Bump the package version
    and tag the commit in the same change.
@@ -60,14 +62,15 @@ Run the checker first, then rewrite. `scripts/` below is this skill's own direct
 
 ## Limits
 
-The checker bounds size: no bullet over 80 words, `Unreleased` under 600 words. It cannot check
-rule 2, so read the lead sentence of every bullet you touch. A section that only fits by
+The checker prints its own bounds, and `--max-words` and `--max-section` move them. It cannot
+judge rule 2, so read the lead sentence of every bullet you touch. A section that only fits by
 dropping reader-visible behavior means the release needs an ADR, not a longer bullet.
 
 ## Finish only when
 
 - [ ] The checker is clean on the Unreleased section.
-- [ ] Every bullet's first sentence says something the reader can act on.
+- [ ] Every bullet's first sentence names what the reader sees, sets or does, and is under 25
+      words.
 - [ ] `git diff` touches nothing below a `## [x.y.z]` heading.
 - [ ] No fact, setting name or number was lost: each survives in the file or its new home.
 - [ ] Breaking changes name their migration; new settings name their default and location.
