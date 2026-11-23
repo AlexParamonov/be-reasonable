@@ -5,12 +5,10 @@
 
 import { describe, expect, it } from "vite-plus/test";
 import { proseLength, shouldRequestTrim } from "../src/be-concise.js";
-import type { BeReasonableConfig } from "../src/config/config-io.js";
+import type { BeConciseConfig } from "../src/config/config-io.js";
 
-function settings(overrides: Partial<BeReasonableConfig["beConcise"]> = {}): BeReasonableConfig {
-  return {
-    beConcise: { enabled: true, maxChars: 6, message: "Cut it.", ...overrides },
-  };
+function settings(overrides: Partial<BeConciseConfig> = {}): BeConciseConfig {
+  return { enabled: true, maxChars: 6, message: "Cut it.", ...overrides };
 }
 
 describe("proseLength", () => {
@@ -29,19 +27,19 @@ describe("proseLength", () => {
 
 describe("shouldRequestTrim", () => {
   it("requests a trim once the prose passes the bound", () => {
-    expect(shouldRequestTrim({ text: "abcdefg", config: settings(), alreadyTrimmed: false })).toBe(true);
+    expect(shouldRequestTrim({ text: "abcdefg", beConcise: settings(), alreadyTrimmed: false })).toBe(true);
   });
 
   it("stays quiet when the prose is exactly at the bound", () => {
-    expect(shouldRequestTrim({ text: "abcdef", config: settings(), alreadyTrimmed: false })).toBe(false);
+    expect(shouldRequestTrim({ text: "abcdef", beConcise: settings(), alreadyTrimmed: false })).toBe(false);
   });
 
   it("stays quiet while the setting is off", () => {
-    const config = settings({ enabled: false });
-    expect(shouldRequestTrim({ text: "abcdefg", config, alreadyTrimmed: false })).toBe(false);
+    const beConcise = settings({ enabled: false });
+    expect(shouldRequestTrim({ text: "abcdefg", beConcise, alreadyTrimmed: false })).toBe(false);
   });
 
   it("stays quiet when the answer is already the reply to a trim request", () => {
-    expect(shouldRequestTrim({ text: "abcdefg", config: settings(), alreadyTrimmed: true })).toBe(false);
+    expect(shouldRequestTrim({ text: "abcdefg", beConcise: settings(), alreadyTrimmed: true })).toBe(false);
   });
 });

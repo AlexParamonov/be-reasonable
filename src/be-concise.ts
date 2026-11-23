@@ -5,7 +5,7 @@
  * densest replies hardest. One reply is answered once: a second request after an already-shortened answer
  * is a loop that costs a turn per round.
  */
-import type { BeReasonableConfig } from "./config/config-io.ts";
+import type { BeConciseConfig } from "./config/config-io.ts";
 
 /** A fenced block, closed or left open to the end of the message. */
 const FENCE = /```[\s\S]*?(?:```|$)/g;
@@ -26,12 +26,12 @@ export function proseLength(text: string): number {
 export interface TrimInput {
   /** The reply the model just produced. */
   text: string;
-  config: BeReasonableConfig;
+  beConcise: BeConciseConfig;
   /** The reply answers a trim request already sent for this turn. */
   alreadyTrimmed: boolean;
 }
 
-export function shouldRequestTrim({ text, config, alreadyTrimmed }: TrimInput): boolean {
-  if (!config.beConcise.enabled || alreadyTrimmed) return false;
-  return proseLength(text) > config.beConcise.maxChars;
+export function shouldRequestTrim({ text, beConcise, alreadyTrimmed }: TrimInput): boolean {
+  if (!beConcise.enabled || alreadyTrimmed) return false;
+  return proseLength(text) > beConcise.maxChars;
 }

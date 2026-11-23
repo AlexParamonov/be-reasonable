@@ -42,7 +42,7 @@ Pi only. When an answer settles, the extension counts its prose, ignoring fenced
 }
 ```
 
-`enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. One answer gets one trim request, so a long reply cannot start a loop of continuations.
+`enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten. One answer gets one trim request, so a long reply cannot start a loop of continuations. A settings menu is planned; until then these files are the only way to change them.
 
 ## Other agents
 

@@ -4,8 +4,9 @@
  * The request is one continuation, never a second one for the same answer: a continuation requested again
  * after an already-shortened reply is a loop that spends a turn per round.
  */
+import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadConfig } from "./config/config-io.ts";
+import { ConfigStore } from "./config/config-store.ts";
 import { shouldRequestTrim } from "./be-concise.ts";
 
 const TRIM_TYPE = "be-concise";
@@ -25,7 +26,14 @@ function lastAssistantText(messages: readonly { role: string; content: unknown }
 }
 
 export default function (pi: ExtensionAPI) {
+  const store = new ConfigStore();
   let awaitingTrimReply = false;
+
+  pi.on("session_start", async (_event, ctx) => {
+    store.setProjectDir(ctx.isProjectTrusted() ? join(ctx.cwd, ".pi") : undefined);
+    store.reload();
+    awaitingTrimReply = false;
+  });
 
   pi.on("input", async () => {
     awaitingTrimReply = false;
@@ -33,9 +41,9 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("agent_before_settle", async (event) => {
     if (event.outcome !== "completed") return;
-    const config = loadConfig();
+    const beConcise = store.beConcise;
     const text = lastAssistantText(event.context.llmMessages);
-    if (!shouldRequestTrim({ text, config, alreadyTrimmed: awaitingTrimReply })) {
+    if (!shouldRequestTrim({ text, beConcise, alreadyTrimmed: awaitingTrimReply })) {
       awaitingTrimReply = false;
       return;
     }
@@ -43,7 +51,7 @@ export default function (pi: ExtensionAPI) {
     return {
       entries: [
         ...event.entries,
-        { type: "custom_message", customType: TRIM_TYPE, content: config.beConcise.message, display: false },
+        { type: "custom_message", customType: TRIM_TYPE, content: beConcise.message, display: false },
       ],
       continue: true,
     };
