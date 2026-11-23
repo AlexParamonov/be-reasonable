@@ -1,10 +1,9 @@
 {
   "name": "be-reasonable",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Simplify code without sacrificing correctness and keep tests focused on behavior.",
   "author": {
     "name": "Alexander Paramonov"
   },
-  "commands": ["./commands"],
   "skills": ["./skills"]
 }
