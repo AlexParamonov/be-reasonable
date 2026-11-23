@@ -48,7 +48,7 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 
 `/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides is shown as `500 [project]`, so you can tell an override from an inherited value, and every change says which file it landed in.
 
-The request waits for the turn to end rather than cutting in while tools are still running. It comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
+The request waits for the turn to end rather than cutting in while tools are still running. It comes once per answer: the answer to a request is never asked again, and a later run in the same turn, one a background notification started for example, gets its own request. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
 
 ## Other agents
 

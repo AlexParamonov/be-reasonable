@@ -27,7 +27,7 @@ export interface TrimInput {
   /** The reply the model just produced. */
   text: string;
   beConcise: BeConciseConfig;
-  /** The reply answers a trim request already sent for this turn. */
+  /** The reply is the answer to the trim request already sent for it. */
   alreadyTrimmed: boolean;
 }
 

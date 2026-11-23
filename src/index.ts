@@ -13,10 +13,11 @@ import { shouldRequestTrim } from "./be-concise.ts";
 
 const TRIM_TYPE = "be-concise";
 
-function lastAssistantText(messages: readonly { role: string; content: unknown }[]): string {
+function lastText(messages: readonly { role: string; content: unknown }[], role: string): string {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
-    if (message.role !== "assistant") continue;
+    if (message.role !== role) continue;
+    if (typeof message.content === "string") return message.content;
     const parts = Array.isArray(message.content) ? message.content : [];
     return parts
       .map((part) =>
@@ -38,18 +39,11 @@ export default function (pi: ExtensionAPI) {
   });
 
   let trimWanted = false;
-  let requested = false;
 
   pi.on("session_start", async (_event, ctx) => {
     store.setProjectDir(ctx.isProjectTrusted() ? join(ctx.cwd, ".pi") : undefined);
     store.reload();
     trimWanted = false;
-    requested = false;
-  });
-
-  pi.on("input", async () => {
-    trimWanted = false;
-    requested = false;
   });
 
   pi.on("agent_before_settle", async (event) => {
@@ -57,10 +51,12 @@ export default function (pi: ExtensionAPI) {
       trimWanted = false;
       return;
     }
+    const { llmMessages } = event.context;
     trimWanted = shouldRequestTrim({
-      text: lastAssistantText(event.context.llmMessages),
+      text: lastText(llmMessages, "assistant"),
       beConcise: store.beConcise,
-      alreadyTrimmed: requested,
+      // Pi hands the model our request as a user message with exactly this text (messages.js convertToLlm).
+      alreadyTrimmed: lastText(llmMessages, "user") === store.beConcise.message,
     });
   });
 
@@ -69,7 +65,6 @@ export default function (pi: ExtensionAPI) {
     trimWanted = false;
     // The user already has a message waiting: it will steer the answer, so a trim request is noise.
     if (ctx.hasPendingMessages()) return;
-    requested = true;
     pi.sendMessage(
       { customType: TRIM_TYPE, content: store.beConcise.message, display: true },
       // No deliverAs: the host queues only while streaming, and Pi empties those queues on Esc, dropping
