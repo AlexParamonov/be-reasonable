@@ -1,6 +1,6 @@
 {
   "name": "be-reasonable",
-  "description": "Simplify code without sacrificing correctness and keep tests focused on behavior.",
+  "description": "Simplify code without sacrificing correctness, keep tests focused on behavior, keep changelogs readable.",
   "owner": {
     "name": "Alexander Paramonov"
   },
