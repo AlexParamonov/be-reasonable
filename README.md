@@ -25,7 +25,7 @@ pi install -l npm:be-reasonable
 Pi selects a skill when the task matches its description, or you can invoke it directly:
 - `/skill:be-reasonable` reviews unnecessary complexity.
 - `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
-- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`. It sets `disable-model-invocation: true`, so an agent never selects it on its own; run it yourself, and pass the change to document or nothing at all to tidy the Unreleased section.
+- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing at all to tidy the Unreleased section. An agent does not pick it up on its own, because it is switched off in `/be-reasonable-settings`; switch it on there if you want one to.
 - `/skill:be-concise` cuts the last reply down, automatically and fully configurable via /be-reasonable-settings menu
 
 ### be-concise extension
@@ -64,7 +64,7 @@ Pi shows the model every skill it loads, and the model reads those descriptions 
 
 A switched-off skill leaves the model's skill listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. Rows use the same Global and Project levels as the be-concise settings, so one repository can show the model a skill the rest of your work keeps to yourself. A project's config can only switch skills this package ships, never your own.
 
-`be-concise` and `maintain-changelog` have no row. They ship with `disable-model-invocation: true` in their own `SKILL.md`, which is pi's own switch and applies before ours, so a setting could never show them. Edit that file if you want one of them offered to the model, and note it is the file every agent you install these skills from reads, not just pi.
+`be-concise` has no row. It ships `disable-model-invocation: true` in its own `SKILL.md`, which is pi's own switch and applies before ours, so a setting could never show it. `maintain-changelog` used to ship that way too: its row is now the switch, and it is off by default, so nothing changes until you turn it on.
 
 ## Other agents
 

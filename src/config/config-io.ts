@@ -175,10 +175,10 @@ export function mergeLayers(global: RawConfig, project: RawConfig | null): RawCo
   return merged;
 }
 
-/** Every shipped skill's switch: a layer's `false` is the only way a model is not shown it. */
+/** Each shipped skill's switch: a layer's value wins, otherwise the way the skill shipped. */
 function mergeModelInvocable(raw: RawModelInvocable = {}): Record<HidableSkill, boolean> {
   const effective = {} as Record<HidableSkill, boolean>;
-  for (const name of HIDABLE_SKILLS) effective[name] = raw[name] ?? true;
+  for (const skill of HIDABLE_SKILLS) effective[skill.name] = raw[skill.name] ?? skill.shownByDefault;
   return effective;
 }
 

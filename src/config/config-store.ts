@@ -74,7 +74,7 @@ export class ConfigStore {
 
   /** Shipped skills the model must not be shown, in the order the settings menu lists them. */
   get hiddenFromModel(): HidableSkill[] {
-    return HIDABLE_SKILLS.filter((name) => !this.config.modelInvocable[name]);
+    return HIDABLE_SKILLS.filter((skill) => !this.config.modelInvocable[skill.name]).map((skill) => skill.name);
   }
 
   // ── Mutations ───────────────────────────────────────────────

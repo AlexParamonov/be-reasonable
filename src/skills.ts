@@ -1,17 +1,22 @@
 /**
  * skills.ts — The shipped skills whose model visibility this extension's settings switch.
  *
- * Only a skill pi shows the model can be hidden from it here. `be-concise` and `maintain-changelog` ship
- * `disable-model-invocation: true` in their own SKILL.md, which pi applies after our filter, so a switch here
- * could never show them, and `be-concise` is meant to stay out of the listing: its trim request is the plain
- * words the model answers directly.
+ * Order is the settings menu's order. `shownByDefault` is what a layer that says nothing means, and it is what
+ * each skill shipped as before the switch existed. A skill that ships `disable-model-invocation: true` in its
+ * own SKILL.md cannot be switched on from here: pi applies the file's flag after our filter, so `be-concise`
+ * is not listed at all - it stays out of the listing on purpose, and its trim request is the plain words the
+ * model answers without loading anything.
  */
-export const HIDABLE_SKILLS = ["be-reasonable", "maintain-tests"] as const;
+export const HIDABLE_SKILLS = [
+  { name: "be-reasonable", shownByDefault: true },
+  { name: "maintain-changelog", shownByDefault: false },
+  { name: "maintain-tests", shownByDefault: true },
+] as const;
 
 /** Name of a shipped skill, exactly as pi's skill listing names it. */
-export type HidableSkill = (typeof HIDABLE_SKILLS)[number];
+export type HidableSkill = (typeof HIDABLE_SKILLS)[number]["name"];
 
 /** True when `key` names a skill whose visibility this extension offers to switch. */
 export function isHidableSkill(key: string): key is HidableSkill {
-  return (HIDABLE_SKILLS as readonly string[]).includes(key);
+  return HIDABLE_SKILLS.some((skill) => skill.name === key);
 }

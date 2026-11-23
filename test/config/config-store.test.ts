@@ -30,27 +30,35 @@ describe("ConfigStore reads", () => {
     expect(store.beConcise).toEqual({ enabled: true, maxChars: 900, message: "Cut it." });
   });
 
-  it("keeps every shipped skill visible to the model by default", () => {
+  it("shows the model the two skills that shipped visible and hides the one that shipped not", () => {
     const store = new ConfigStore(minimalIO());
-    expect(store.modelInvocable).toEqual({ "be-reasonable": true, "maintain-tests": true });
+    expect(store.modelInvocable).toEqual({
+      "be-reasonable": true,
+      "maintain-changelog": false,
+      "maintain-tests": true,
+    });
   });
 });
 
 describe("ConfigStore model-invocable skills", () => {
   it("hides a skill the project layer switches off, leaving its sibling alone", () => {
     const { io } = memIO({
-      global: { modelInvocable: { "maintain-tests": false } },
+      global: { modelInvocable: { "maintain-tests": false, "maintain-changelog": true } },
       project: { modelInvocable: { "be-reasonable": false } },
       projectStatus: "loaded",
     });
     const store = new ConfigStore(io);
-    expect(store.modelInvocable).toEqual({ "be-reasonable": false, "maintain-tests": false });
+    expect(store.modelInvocable).toEqual({
+      "be-reasonable": false,
+      "maintain-changelog": true,
+      "maintain-tests": false,
+    });
   });
 
   it("names which skills the model is not shown", () => {
     const { io } = memIO({ global: { modelInvocable: { "be-reasonable": false, "maintain-tests": false } } });
     const store = new ConfigStore(io);
-    expect(store.hiddenFromModel).toEqual(["be-reasonable", "maintain-tests"]);
+    expect(store.hiddenFromModel).toEqual(["be-reasonable", "maintain-changelog", "maintain-tests"]);
   });
 
   it("writes a skill switch to the targeted layer only", () => {

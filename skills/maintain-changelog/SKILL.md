@@ -1,7 +1,6 @@
 ---
 name: maintain-changelog
-description: Write or tidy CHANGELOG.md with one bullet per observable change and proof linked, not inlined.
-disable-model-invocation: true
+description: Use when asked to write or tidy CHANGELOG.md. One bullet per observable change, proof linked not inlined.
 ---
 
 # Changelog

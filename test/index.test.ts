@@ -122,7 +122,7 @@ afterEach(() => {
 
 describe("what the model is shown", () => {
   it("drops a skill the config hides from the model's listing", async () => {
-    writeConfig({ modelInvocable: { "maintain-tests": false } });
+    writeConfig({ modelInvocable: { "maintain-tests": false, "maintain-changelog": true } });
     const { pi, handlers } = createFakePi();
     beReasonable(pi);
     const ctx = createFakeCtx();
@@ -139,7 +139,8 @@ describe("what the model is shown", () => {
     ]);
   });
 
-  it("keeps the listing whole when nothing is hidden", async () => {
+  it("keeps the listing whole when every switch is on", async () => {
+    writeConfig({ modelInvocable: { "be-reasonable": true, "maintain-changelog": true, "maintain-tests": true } });
     const { pi, handlers } = createFakePi();
     beReasonable(pi);
     const ctx = createFakeCtx();

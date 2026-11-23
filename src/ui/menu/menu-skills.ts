@@ -17,24 +17,24 @@ import { HIDABLE_SKILLS } from "../../skills.ts";
 import type { ConfigStore } from "../../config/config-store.ts";
 
 function buildItems(ctx: ExtensionCommandContext, store: ConfigStore, theme: Theme): SettingItem[] {
-  return HIDABLE_SKILLS.map((skill) => {
-    const shown = store.modelInvocable[skill];
+  return HIDABLE_SKILLS.map(({ name }) => {
+    const shown = store.modelInvocable[name];
     return {
-      id: skill,
-      label: skill,
-      currentValue: `${shown ? "ON" : "OFF"}${sourceTag(store, "modelInvocable", skill)}`,
+      id: name,
+      label: name,
+      currentValue: `${shown ? "ON" : "OFF"}${sourceTag(store, "modelInvocable", name)}`,
       submenu: createBooleanLevelSubmenu({
         ctx,
         theme,
         projectOffered: store.projectTargetOffered,
-        label: skill,
+        label: name,
         initial: shown ? "ON" : "OFF",
-        onDescription: "The model is shown it and may load it on its own.",
-        offDescription: "Only you reach it, and only by name.",
-        onChange: (value, target) => store.setModelInvocable(skill, value, target),
-        onClear: (target) => store.setModelInvocable(skill, undefined, target),
+        onDescription: "The model may load it.",
+        offDescription: "Only you, by name.",
+        onChange: (value, target) => store.setModelInvocable(name, value, target),
+        onClear: (target) => store.setModelInvocable(name, undefined, target),
       }),
-      description: `Switch off to leave it out of the model's listing. /skill:${skill} runs it either way.`,
+      description: `/skill:${name} runs it either way.`,
     };
   });
 }

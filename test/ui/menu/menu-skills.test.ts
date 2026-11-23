@@ -63,15 +63,15 @@ describe("showSkillsSettingsMenu", () => {
 
   it("shows each shipped skill's switch, tagged where the project sets it", async () => {
     const { store } = makeStore(
-      { modelInvocable: { "be-reasonable": false } },
-      { project: { modelInvocable: { "maintain-tests": false } }, projectStatus: "loaded" },
+      {},
+      { project: { modelInvocable: { "maintain-tests": true } }, projectStatus: "loaded" },
     );
     const ctx = createMockCtx();
     await showSkillsSettingsMenu(ctx, store);
 
     const rows = settingsListCalls[0].items;
-    expect(rows.map((r) => r.id)).toEqual(["be-reasonable", "maintain-tests"]);
-    expect(rows.map((r) => r.currentValue)).toEqual(["OFF", "OFF [project]"]);
+    expect(rows.map((r) => r.id)).toEqual(["be-reasonable", "maintain-changelog", "maintain-tests"]);
+    expect(rows.map((r) => r.currentValue)).toEqual(["ON", "OFF", "ON [project]"]);
   });
 
   it("writes the switch to the level picked, leaving the other layer alone", async () => {
