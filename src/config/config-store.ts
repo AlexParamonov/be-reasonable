@@ -3,8 +3,8 @@
  *
  * - Reads return defaults baked in (no `?? 700` at call sites).
  * - Each persisted mutate method is mutate + persist, so a write cannot be forgotten.
- * - Effective config resolves project file → global file → built-in defaults. A mutation writes the
- *   global file, which keeps only its own keys; the merged config is never written back.
+ * - Effective config resolves project file → global file → built-in defaults. A mutation writes one
+ *   layer, which keeps only its own keys; the merged config is never written back.
  *
  * Lifecycle: per-session. `reload()` re-reads disk at session_start.
  */
@@ -14,13 +14,14 @@ import {
   mergeDefaults,
   mergeLayers,
   type ConfigIO,
+  type ConfigTarget,
   type ProjectLayerStatus,
   type RawBeConcise,
   type RawConfig,
   type BeReasonableConfig,
 } from "./config-io.ts";
 
-export type { ConfigIO, ProjectLayerStatus, RawConfig } from "./config-io.ts";
+export type { ConfigIO, ConfigTarget, ProjectLayerStatus, RawConfig } from "./config-io.ts";
 
 export const fileConfigIO: ConfigIO = createConfigIO();
 
@@ -52,39 +53,53 @@ export class ConfigStore {
 
   // ── Reads ──────────────────────────────────────────────────────
 
+  /** True when the project layer may be written: trusted project, valid or absent file. */
+  get projectTargetOffered(): boolean {
+    return this.projectStatus === "loaded" || this.projectStatus === "absent";
+  }
+
+  /** Which layers carry one setting: drives the menu's source tag and its clear rows. */
+  layerCarries(key: keyof RawBeConcise): { global: boolean; project: boolean } {
+    return {
+      global: this.globalRaw.beConcise?.[key] !== undefined,
+      project: this.projectRaw?.beConcise?.[key] !== undefined,
+    };
+  }
+
   get beConcise(): BeReasonableConfig["beConcise"] {
     return this.config.beConcise;
   }
 
   // ── Mutations ───────────────────────────────────────────────
 
-  /** Writes land in the global file; a project file's own `enabled` still overrides it. */
-  setBeConciseEnabled(enabled: boolean | undefined): void {
-    this.applyBeConciseWrite((layer) => {
+  setBeConciseEnabled(enabled: boolean | undefined, target: ConfigTarget): void {
+    this.applyBeConciseWrite(target, (layer) => {
       if (enabled === undefined) delete layer.enabled;
       else layer.enabled = enabled;
     });
   }
 
-  setBeConciseMaxChars(maxChars: number | undefined): void {
-    this.applyBeConciseWrite((layer) => {
+  setBeConciseMaxChars(maxChars: number | undefined, target: ConfigTarget): void {
+    this.applyBeConciseWrite(target, (layer) => {
       if (maxChars === undefined) delete layer.maxChars;
       else layer.maxChars = maxChars;
     });
   }
 
-  /** Writes land in the global file; a project file's own `message` still overrides it. */
-  setBeConciseMessage(message: string | undefined): void {
-    this.applyBeConciseWrite((layer) => {
+  setBeConciseMessage(message: string | undefined, target: ConfigTarget): void {
+    this.applyBeConciseWrite(target, (layer) => {
       if (message === undefined) delete layer.message;
       else layer.message = message;
     });
   }
 
-  private applyBeConciseWrite(write: (layer: RawBeConcise) => void): void {
-    this.globalRaw.beConcise ??= {};
-    write(this.globalRaw.beConcise);
-    this.io.saveGlobal(this.globalRaw);
+  private applyBeConciseWrite(target: ConfigTarget, write: (layer: RawBeConcise) => void): void {
+    const layer = this.layerFor(target);
+    if (!layer) return;
+    layer.beConcise ??= {};
+    write(layer.beConcise);
+    if (target === "global") this.io.saveGlobal(layer);
+    else this.io.saveProject(layer);
     this.rebuildEffective();
   }
 
@@ -100,6 +115,23 @@ export class ConfigStore {
   }
 
   // ── Private helpers ────────────────────────────────────────────
+
+  /**
+   * The raw layer a persisted mutation targets. The project layer is created
+   * empty on first access in a trusted project without a file (the first write
+   * creates the file); when it is unavailable (untrusted or malformed) the
+   * mutation is refused with a warning.
+   */
+  private layerFor(target: ConfigTarget): RawConfig | null {
+    if (target === "global") return this.globalRaw;
+    if (this.projectRaw) return this.projectRaw;
+    if (this.projectStatus === "absent") {
+      this.projectRaw = {};
+      return this.projectRaw;
+    }
+    console.warn(`[be-reasonable] Project config target unavailable (${this.projectStatus}); change ignored`);
+    return null;
+  }
 
   private rebuildEffective(): void {
     this.config = mergeDefaults(mergeLayers(this.globalRaw, this.projectRaw));

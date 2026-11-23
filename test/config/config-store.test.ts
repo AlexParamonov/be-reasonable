@@ -6,7 +6,7 @@
  * layer only.
  */
 
-import { describe, it, expect } from "vite-plus/test";
+import { describe, it, expect, vi } from "vite-plus/test";
 import { ConfigStore } from "../../src/config/config-store.js";
 import { memIO, minimalIO } from "./config-store-helpers.js";
 
@@ -53,6 +53,66 @@ describe("ConfigStore override layers", () => {
     expect(withEmpty.beConcise).toEqual(without.beConcise);
   });
 
+  it("projectTargetOffered follows the project layer status", () => {
+    expect(new ConfigStore(memIO().io).projectTargetOffered).toBe(false);
+    expect(new ConfigStore(memIO({ projectStatus: "absent" }).io).projectTargetOffered).toBe(true);
+    expect(new ConfigStore(memIO({ project: {}, projectStatus: "loaded" }).io).projectTargetOffered).toBe(true);
+    expect(new ConfigStore(memIO({ projectStatus: "malformed" }).io).projectTargetOffered).toBe(false);
+  });
+
+  it("a project mutation writes only the project layer and overrides the global value", () => {
+    const { io, saves, global } = memIO({
+      global: { beConcise: { maxChars: 900 } },
+      project: { beConcise: {} },
+      projectStatus: "loaded",
+    });
+    const store = new ConfigStore(io);
+    store.setBeConciseMaxChars(2500, "project");
+    expect(saves).toHaveLength(1);
+    expect(saves[0].layer).toBe("project");
+    expect(saves[0].config).toEqual({ beConcise: { maxChars: 2500 } });
+    expect(global()).toEqual({ beConcise: { maxChars: 900 } });
+    expect(store.beConcise.maxChars).toBe(2500);
+  });
+
+  it("mutating the project layer without a trusted project is refused with a warning", () => {
+    const { io, saves } = memIO({ projectStatus: "untrusted" });
+    const store = new ConfigStore(io);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      store.setBeConciseMaxChars(2500, "project");
+      expect(saves).toHaveLength(0);
+      expect(store.beConcise.maxChars).toBe(700);
+      expect(warn).toHaveBeenCalledOnce();
+      expect(warn.mock.calls[0][0]).toContain("Project config target unavailable");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("mutating the project layer when the file is malformed is refused; nothing is saved", () => {
+    const { io, saves } = memIO({ projectStatus: "malformed" });
+    const store = new ConfigStore(io);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      store.setBeConciseMaxChars(2500, "project");
+      expect(saves).toHaveLength(0);
+      expect(store.beConcise.maxChars).toBe(700);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("the first project write in a trusted project without a file creates the layer", () => {
+    const { io, saves, project } = memIO({ projectStatus: "absent" });
+    const store = new ConfigStore(io);
+    store.setBeConciseMaxChars(2500, "project");
+    expect(saves).toHaveLength(1);
+    expect(saves[0].layer).toBe("project");
+    expect(project()).toEqual({ beConcise: { maxChars: 2500 } });
+    expect(store.beConcise.maxChars).toBe(2500);
+  });
+
   it("global writes leave the project file untouched and never carry merged or default values", () => {
     const { io, saves, project } = memIO({
       global: { beConcise: { maxChars: 900 } },
@@ -60,7 +120,7 @@ describe("ConfigStore override layers", () => {
       projectStatus: "loaded",
     });
     const store = new ConfigStore(io);
-    store.setBeConciseMessage("Global wording");
+    store.setBeConciseMessage("Global wording", "global");
     expect(saves).toHaveLength(1);
     expect(saves[0].layer).toBe("global");
     expect(saves[0].config).toEqual({ beConcise: { maxChars: 900, message: "Global wording" } });

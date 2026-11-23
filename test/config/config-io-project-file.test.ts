@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vite-plus/test";
 import { join } from "node:path";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 // Per-run temp dirs: must never read a real user config file.
@@ -192,5 +192,53 @@ describe("createConfigIO save — per-layer writes", () => {
 
     expect(JSON.parse(readFileSync(GLOBAL_CONFIG_PATH, "utf-8"))).toEqual({ beConcise: { maxChars: 1500 } });
     expect(readProjectFile()).toEqual({ beConcise: { maxChars: 2500 } });
+  });
+  it("saveProject writes only the project file, leaving the global file untouched", () => {
+    writeGlobal({ beConcise: { enabled: true, maxChars: 900 } });
+    writeProject({ beConcise: { maxChars: 2500 } });
+    const io = createConfigIO(projectDir);
+    io.load();
+
+    io.saveProject({ beConcise: { maxChars: 3000 } });
+
+    expect(readProjectFile()).toEqual({ beConcise: { maxChars: 3000 } });
+    expect(JSON.parse(readFileSync(GLOBAL_CONFIG_PATH, "utf-8"))).toEqual({
+      beConcise: { enabled: true, maxChars: 900 },
+    });
+  });
+
+  it("the first saveProject in a trusted project without a file creates it", () => {
+    const io = createConfigIO(projectDir);
+    io.load();
+
+    io.saveProject({ beConcise: { maxChars: 2500 } });
+
+    expect(readProjectFile()).toEqual({ beConcise: { maxChars: 2500 } });
+  });
+
+  it("saveProject refuses to write a malformed project file; bytes untouched", () => {
+    writeProjectRaw("{ not json !!");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const io = createConfigIO(projectDir);
+      io.load();
+
+      io.saveProject({ beConcise: { maxChars: 2500 } });
+
+      expect(readFileSync(join(projectDir, "be-reasonable.json"), "utf-8")).toBe("{ not json !!");
+      // One warning for the malformed load, one for the refused save.
+      expect(warn).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("saveProject without a trusted project dir writes nothing", () => {
+    const io = createConfigIO();
+    io.load();
+
+    io.saveProject({ beConcise: { maxChars: 2500 } });
+
+    expect(existsSync(join(projectDir, "be-reasonable.json"))).toBe(false);
   });
 });

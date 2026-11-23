@@ -16,7 +16,7 @@ export function memIO(
   } = {},
 ): {
   io: ConfigIO;
-  saves: Array<{ layer: "global"; config: RawConfig }>;
+  saves: Array<{ layer: "global" | "project"; config: RawConfig }>;
   global: () => RawConfig;
   project: () => RawConfig | null;
 } {
@@ -25,7 +25,7 @@ export function memIO(
     project: opts.project === undefined ? null : opts.project,
     projectStatus: opts.projectStatus ?? "untrusted",
   };
-  const saves: Array<{ layer: "global"; config: RawConfig }> = [];
+  const saves: Array<{ layer: "global" | "project"; config: RawConfig }> = [];
   return {
     io: {
       load: () => ({
@@ -36,6 +36,10 @@ export function memIO(
       saveGlobal: (config) => {
         state.global = structuredClone(config);
         saves.push({ layer: "global", config: structuredClone(config) });
+      },
+      saveProject: (config) => {
+        state.project = structuredClone(config);
+        saves.push({ layer: "project", config: structuredClone(config) });
       },
     },
     saves,
@@ -50,5 +54,6 @@ export function minimalIO(): ConfigIO {
   return {
     load: () => ({ global: {}, project: null, projectStatus: "untrusted" }),
     saveGlobal: () => {},
+    saveProject: () => {},
   };
 }

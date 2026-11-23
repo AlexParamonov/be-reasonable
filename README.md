@@ -46,7 +46,7 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 
 `enabled` is off until you set it, and `message` is the instruction the agent receives: those two words by default, the ones `/skill:be-concise` carries, because an elaborate instruction tested worse than the plain one. Put whatever you like there. A trusted project's `.pi/be-reasonable.json` overrides every setting for that project, so one repository can run with its own bound, switch and wording.
 
-`/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A change is written to the global file as you make it, so a project's own setting still wins over it.
+`/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides is shown as `500 [project]`, so you can tell an override from an inherited value, and every change says which file it landed in.
 
 The request waits for the turn to end rather than cutting in while tools are still running. It comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
 

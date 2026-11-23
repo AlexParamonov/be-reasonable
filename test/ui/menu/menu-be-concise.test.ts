@@ -74,20 +74,28 @@ function resetState() {
 }
 
 /** Real store over in-memory layers, so a menu write is checked where it lands. */
-function makeStore(global: RawConfig = {}) {
-  const mem = memIO({ global });
+function makeStore(
+  global: RawConfig = {},
+  layer: { project?: RawConfig | null; projectStatus?: "untrusted" | "absent" | "loaded" | "malformed" } = {},
+) {
+  const mem = memIO({ global, ...layer });
   return { store: new ConfigStore(mem.io), saved: mem };
 }
 
-/** Open the menu and hand back the row plus the captured Input it built. */
-async function openWithSubmenu(id: string, store: ConfigStore, initialValue?: string) {
+/** The rows of a mocked SettingsList, which is what every picker in this menu returns. */
+type Picker = { items: Array<{ id: string; submenu?: (cv: string, done: (v?: string) => void) => unknown }> };
+
+/** Open the menu, drive a row's level picker to one level, and hand back its value step. */
+async function openValueStep(id: string, store: ConfigStore, level: "global" | "project" = "global") {
   const ctx = createMockCtx();
   await showBeConciseSettingsMenu(ctx, store);
   const item = settingsListCalls[0].items.find((i) => i.id === id)!;
   const done = vi.fn();
-  const component = item.submenu!(initialValue ?? item.currentValue, done) as unknown as {
-    onSubmit?: (value: string) => void;
+  const picker = item.submenu!(item.currentValue, done) as unknown as {
+    items: Array<{ id: string; submenu?: (cv: string, done: (v?: string) => void) => unknown }>;
   };
+  const step = picker.items.find((i) => i.id === level)!.submenu!;
+  const component = step(item.currentValue, vi.fn()) as unknown as { onSubmit?: (value: string) => void };
   return { ctx, item, done, component };
 }
 
@@ -103,6 +111,26 @@ describe("showBeConciseSettingsMenu — flat SettingsList", () => {
     await showBeConciseSettingsMenu(ctx, store);
     expect(ctx.ui.custom).toHaveBeenCalled();
     expect(ctx.ui.select).not.toHaveBeenCalled();
+  });
+
+  it("tags a value the project layer provides with its source", async () => {
+    const { store } = makeStore(
+      { beConcise: { maxChars: 800 } },
+      { project: { beConcise: { maxChars: 500 } }, projectStatus: "loaded" },
+    );
+    const ctx = createMockCtx();
+    await showBeConciseSettingsMenu(ctx, store);
+    const items = settingsListCalls[0].items;
+    expect(items.find((i) => i.id === "maxChars")!.currentValue).toBe("500 [project]");
+    expect(items.find((i) => i.id === "message")!.currentValue).toBe("Be concise");
+  });
+
+  it("offers no project level when no project layer can be written", async () => {
+    const { store } = makeStore();
+    const ctx = createMockCtx();
+    await showBeConciseSettingsMenu(ctx, store);
+    const row = settingsListCalls[0].items.find((i) => i.id === "maxChars")!;
+    expect((row.submenu!("800", vi.fn()) as unknown as Picker).items.map((i) => i.id)).toEqual(["global", "clear"]);
   });
 
   it("has the three be-concise items", async () => {
@@ -127,19 +155,54 @@ describe("showBeConciseSettingsMenu — flat SettingsList", () => {
     expect(settingsListCalls[0].items.find((i) => i.id === "enabled")!.currentValue).toBe("ON");
   });
 
-  it("enabled onChange writes the store and the global layer", async () => {
-    const { store, saved } = makeStore();
+  it("writes the bound to the level picked, leaving the other layer alone", async () => {
+    const { store, saved } = makeStore(
+      { beConcise: { maxChars: 800 } },
+      { project: { beConcise: {} }, projectStatus: "loaded" },
+    );
+    const { component } = await openValueStep("maxChars", store, "project");
+    component.onSubmit?.("500");
+    expect(store.beConcise.maxChars).toBe(500);
+    expect(saved.project()).toEqual({ beConcise: { maxChars: 500 } });
+    expect(saved.global()).toEqual({ beConcise: { maxChars: 800 } });
+  });
+
+  it("writes the switch to the level picked", async () => {
+    const { store, saved } = makeStore({}, { project: { beConcise: {} }, projectStatus: "loaded" });
     const ctx = createMockCtx();
     await showBeConciseSettingsMenu(ctx, store);
-    settingsListCalls[0].onChange("enabled", "ON");
+    const row = settingsListCalls[0].items.find((i) => i.id === "enabled")!;
+
+    const picker = row.submenu!("OFF", vi.fn()) as unknown as Picker;
+    const values = picker.items.find((i) => i.id === "project")!.submenu!("OFF", vi.fn()) as unknown as Picker;
+    values.items.find((i) => i.id === "ON")!.submenu!("", vi.fn());
+
     expect(store.beConcise.enabled).toBe(true);
-    expect(saved.global()).toEqual({ beConcise: { enabled: true } });
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Be concise ON", "info");
+    expect(saved.project()).toEqual({ beConcise: { enabled: true } });
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Be concise ON (project)", "info");
+  });
+
+  it("clears one level from the picker without touching the other", async () => {
+    const { store, saved } = makeStore(
+      { beConcise: { maxChars: 800 } },
+      { project: { beConcise: { maxChars: 500 } }, projectStatus: "loaded" },
+    );
+    const ctx = createMockCtx();
+    await showBeConciseSettingsMenu(ctx, store);
+    const row = settingsListCalls[0].items.find((i) => i.id === "maxChars")!;
+
+    const picker = row.submenu!("500 [project]", vi.fn()) as unknown as Picker;
+    const levels = picker.items.find((i) => i.id === "clear")!.submenu!("", vi.fn()) as unknown as Picker;
+    levels.items.find((i) => i.id === "project")!.submenu!("", vi.fn());
+
+    expect(saved.project()).toEqual({ beConcise: {} });
+    expect(store.beConcise.maxChars).toBe(800);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Answer prose bound cleared (project)", "info");
   });
 
   it("maxChars shows the bound and opens a numeric submenu", async () => {
     const { store } = makeStore({ beConcise: { maxChars: 800 } });
-    const { item, component } = await openWithSubmenu("maxChars", store);
+    const { item, component } = await openValueStep("maxChars", store);
     expect(item.currentValue).toBe("800");
     expect(inputInstances.length).toBe(1);
     component.onSubmit?.("500");
@@ -148,25 +211,24 @@ describe("showBeConciseSettingsMenu — flat SettingsList", () => {
 
   it("maxChars submenu keeps the bound when input is invalid", async () => {
     const { store } = makeStore({ beConcise: { maxChars: 800 } });
-    const { ctx, done, component } = await openWithSubmenu("maxChars", store);
+    const { ctx, done, component } = await openValueStep("maxChars", store);
     component.onSubmit?.("0");
     expect(store.beConcise.maxChars).toBe(800);
     expect(done).not.toHaveBeenCalled();
     expect(ctx.ui.notify).toHaveBeenCalledWith("Invalid value — must be a number ≥ 1", "error");
   });
 
-  it("message onChange writes the wording and the global layer", async () => {
-    const { store, saved } = makeStore();
-    const ctx = createMockCtx();
-    await showBeConciseSettingsMenu(ctx, store);
-    settingsListCalls[0].onChange("message", "Shorter.");
+  it("writes the wording to the level picked", async () => {
+    const { store, saved } = makeStore({}, { project: { beConcise: {} }, projectStatus: "loaded" });
+    const { component } = await openValueStep("message", store, "project");
+    component.onSubmit?.("Shorter.");
     expect(store.beConcise.message).toBe("Shorter.");
-    expect(saved.global()).toEqual({ beConcise: { message: "Shorter." } });
+    expect(saved.project()).toEqual({ beConcise: { message: "Shorter." } });
   });
 
   it("message submenu refuses empty wording", async () => {
     const { store } = makeStore({ beConcise: { message: "Keep me." } });
-    const { ctx, done, component } = await openWithSubmenu("message", store);
+    const { ctx, done, component } = await openValueStep("message", store);
     component.onSubmit?.("   ");
     expect(done).not.toHaveBeenCalled();
     expect(store.beConcise.message).toBe("Keep me.");
