@@ -2,7 +2,7 @@
  * config-io.ts — Config persistence (read/write) with override layers.
  *
  * Atomic writes: write to .tmp then rename.
- * Loaded at session_start; saved on every /be-reasonable menu mutation.
+ * Loaded at session_start; saved on every /be-reasonable-settings menu mutation.
  *
  * Two layers: the global file ~/.pi/agent/be-reasonable.json and a trusted
  * project's .pi/be-reasonable.json. The project layer may carry the bound,

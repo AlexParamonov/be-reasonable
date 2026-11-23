@@ -19,6 +19,10 @@ vi.mock("@earendil-works/pi-coding-agent", () => ({
   getAgentDir: () => MOCK_AGENT_DIR,
 }));
 
+vi.mock("../src/ui/menu/menus.js", () => ({
+  showSettingsMenu: vi.fn(),
+}));
+
 const { default: beReasonable } = await import("../src/index.js");
 
 const TRIM_MESSAGE = "Cut it.";
@@ -43,16 +47,20 @@ type FakeHandler = (event: FakeEvent, ctx: ExtensionContext) => Promise<unknown>
 /** Fake Pi API: records registered handlers and every message the extension sends. */
 function createFakePi() {
   const handlers = new Map<string, FakeHandler>();
+  const commands = new Map<string, { handler: (args: string, ctx: ExtensionContext) => Promise<void> }>();
   const sent: Sent[] = [];
   const pi = {
     on: (event: string, handler: FakeHandler) => {
       handlers.set(event, handler);
     },
+    registerCommand: (name: string, command: { handler: (args: string, ctx: ExtensionContext) => Promise<void> }) => {
+      commands.set(name, command);
+    },
     sendMessage: (message: Sent["message"], options?: Sent["options"]) => {
       sent.push({ message, options });
     },
   } as unknown as ExtensionAPI;
-  return { pi, handlers, sent };
+  return { pi, handlers, commands, sent };
 }
 
 function createFakeCtx(overrides: Partial<Pick<ExtensionContext, "hasPendingMessages">> = {}): ExtensionContext {
@@ -94,6 +102,17 @@ describe("be-concise extension", () => {
 
   afterAll(() => {
     rmSync(MOCK_AGENT_DIR, { recursive: true, force: true });
+  });
+
+  it("opens the settings menu from /be-reasonable-settings", async () => {
+    const { showSettingsMenu } = await import("../src/ui/menu/menus.js");
+    const { pi, commands } = createFakePi();
+    beReasonable(pi);
+    const ctx = createFakeCtx();
+
+    await commands.get("be-reasonable-settings")?.handler("", ctx);
+
+    expect(showSettingsMenu).toHaveBeenCalledWith(ctx, expect.objectContaining({ beConcise: expect.anything() }));
   });
 
   it("asks for one shorter answer once the long answer settles", async () => {

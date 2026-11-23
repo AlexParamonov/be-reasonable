@@ -41,7 +41,7 @@ function describeValue(value: unknown): string {
 function formatIncompatibleWarning(filePath: string, keyPath: string, value: unknown, expected: string): string {
   return (
     `[be-reasonable] Incompatible value in ${filePath}: "${keyPath}" is ${describeValue(value)}, ` +
-    `expected ${expected}. Set it again in the /be-reasonable menu, or edit or delete the file to fix it.`
+    `expected ${expected}. Set it again in the /be-reasonable-settings menu, or edit or delete the file to fix it.`
   );
 }
 

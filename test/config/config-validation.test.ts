@@ -59,7 +59,7 @@ describe("validateRawLayer — nulls and the warning shape", () => {
 
       expect(warn).toHaveBeenCalledWith(
         `[be-reasonable] Incompatible value in /g.json: "beConcise.maxChars" is string, ` +
-          "expected whole number of characters, 1 or more. Set it again in the /be-reasonable menu, " +
+          "expected whole number of characters, 1 or more. Set it again in the /be-reasonable-settings menu, " +
           "or edit or delete the file to fix it.",
       );
     } finally {

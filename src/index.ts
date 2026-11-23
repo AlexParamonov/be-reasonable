@@ -6,8 +6,9 @@
  * message from the middle of a task is never cut short.
  */
 import { join } from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { ConfigStore } from "./config/config-store.ts";
+import { showSettingsMenu } from "./ui/menu/menus.ts";
 import { shouldRequestTrim } from "./be-concise.ts";
 
 const TRIM_TYPE = "be-concise";
@@ -28,6 +29,14 @@ function lastAssistantText(messages: readonly { role: string; content: unknown }
 
 export default function (pi: ExtensionAPI) {
   const store = new ConfigStore();
+
+  pi.registerCommand("be-reasonable-settings", {
+    description: "Configure be-reasonable: be concise settings",
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
+      await showSettingsMenu(ctx, store);
+    },
+  });
+
   let trimWanted = false;
   let requested = false;
 
