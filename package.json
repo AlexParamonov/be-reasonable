@@ -48,6 +48,9 @@
   "pi": {
     "skills": [
       "./skills"
+    ],
+    "extensions": [
+      "./src/index.ts"
     ]
   },
   "overrides": {
