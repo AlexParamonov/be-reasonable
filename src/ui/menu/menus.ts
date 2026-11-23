@@ -52,7 +52,7 @@ export async function showSettingsMenu(ctx: ExtensionCommandContext, store: Conf
     {
       value: "skills",
       label: "Skills",
-      description: "Control which skills the model can call",
+      description: "Control which skills the model can use",
     },
   ];
 
