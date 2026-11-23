@@ -92,7 +92,7 @@ describe("load-time validation — global layer", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const config = loadConfig();
-      expect(config.beConcise.maxChars).toBe(1200);
+      expect(config.beConcise.maxChars).toBe(700);
       expect(config.beConcise.message).toBe("Shorter.");
     } finally {
       warn.mockRestore();

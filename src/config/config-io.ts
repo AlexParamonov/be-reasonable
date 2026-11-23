@@ -28,7 +28,7 @@ const CONFIG_PATH = path.join(CONFIG_DIR, CONFIG_FILE_NAME);
 
 export const DEFAULT_BE_CONCISE: BeConciseConfig = {
   enabled: false,
-  maxChars: 1200,
+  maxChars: 700,
   // The words /skill:be-concise carries: an elaborate instruction tested worse than the plain one.
   message: "Be concise",
 };

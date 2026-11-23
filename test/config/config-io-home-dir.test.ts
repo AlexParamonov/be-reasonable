@@ -40,6 +40,6 @@ describe("loadConfig defaults", () => {
   it("bakes in the built-in settings when no config file exists", () => {
     const config = loadConfig();
     expect(config.beConcise.enabled).toBe(false);
-    expect(config.beConcise.maxChars).toBe(1200);
+    expect(config.beConcise.maxChars).toBe(700);
   });
 });

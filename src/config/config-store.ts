@@ -1,7 +1,7 @@
 /**
  * config-store.ts — Deep module owning persisted config + per-session overrides.
  *
- * - Reads return defaults baked in (no `?? 1200` at call sites).
+ * - Reads return defaults baked in (no `?? 700` at call sites).
  * - Each persisted mutate method is mutate + persist, so a write cannot be forgotten.
  * - Effective config resolves project file → global file → built-in defaults. A mutation writes the
  *   global file, which keeps only its own keys; the merged config is never written back.

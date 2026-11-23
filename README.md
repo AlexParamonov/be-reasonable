@@ -36,7 +36,7 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 {
   "beConcise": {
     "enabled": true,
-    "maxChars": 1200,
+    "maxChars": 700,
     "message": "Be concise"
   }
 }
