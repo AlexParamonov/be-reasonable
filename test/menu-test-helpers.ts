@@ -11,8 +11,64 @@
  */
 
 import { vi } from "vite-plus/test";
+import type { Component } from "@earendil-works/pi-tui";
 import type { ExtensionCommandContext, ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import { defaultUi, defaultSessionManager, defaultModel, defaultModelRegistry } from "./mock-utils.js";
+
+/** A submenu double: forwards rendering and input to whichever component is active now. */
+type FauxSubmenu = Component & {
+  setActive(c: Component): void;
+  getActive(): Component;
+  focused: boolean;
+  items: unknown;
+  onSelect: unknown;
+  onCancel: unknown;
+};
+
+/**
+ * Create a Component that delegates to a swappable inner component.
+ * Use in submenus that switch between SelectList -> Input (or similar).
+ */
+export function createDelegatingComponent(initial: Component): FauxSubmenu {
+  let active: Record<string, unknown> = initial as unknown as Record<string, unknown>;
+  const leaf = () => active as unknown as Component;
+  return {
+    invalidate: () => leaf().invalidate?.(),
+    render: (width: number) => leaf().render(width),
+    handleInput: (data: string) => leaf().handleInput?.(data),
+    setActive: (c: Component) => {
+      active = c as unknown as Record<string, unknown>;
+    },
+    // Lets SettingsListWrapper resolve the active leaf through nested delegators to
+    // decide whether keys pass through or get converted.
+    getActive: leaf,
+    get focused() {
+      return (active.focused as boolean | undefined) ?? false;
+    },
+    set focused(value: boolean) {
+      if (active.focused !== undefined) active.focused = value;
+    },
+    // Proxy SelectList properties so SettingsListWrapper can inspect and wire them.
+    get items() {
+      return active.items;
+    },
+    set items(value: unknown) {
+      active.items = value;
+    },
+    get onSelect() {
+      return active.onSelect;
+    },
+    set onSelect(value: unknown) {
+      active.onSelect = value;
+    },
+    get onCancel() {
+      return active.onCancel;
+    },
+    set onCancel(value: unknown) {
+      active.onCancel = value;
+    },
+  };
+}
 
 /** The ui.custom component factory as the mock invokes it: the real
  * (tui, theme, keybindings, done) signature with test-fake argument shapes

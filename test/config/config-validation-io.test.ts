@@ -154,7 +154,6 @@ describe("load-time validation — the store", () => {
       const store = new ConfigStore({
         load: () => ({ global: loaded.global, project: null, projectStatus: "untrusted" }),
         saveGlobal: () => {},
-        saveProject: () => {},
       });
       expect(store.beConcise.enabled).toBe(false);
       expect(store.beConcise.maxChars).toBe(900);

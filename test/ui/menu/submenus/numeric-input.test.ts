@@ -13,13 +13,6 @@ let inputInstances: Array<{
   getValue: () => string;
 }> = [];
 
-// Mock only the heavy deps of helpers.js (searchable-select pulls in pi-tui
-// components the partial pi-tui mock doesn't provide). validateNumeric itself
-// is imported for real — helpers.test.ts pins the same function.
-vi.mock("../../../../src/ui/searchable-select.js", () => ({
-  SearchableSelectDialog: class MockSearchableSelectDialog {},
-}));
-
 vi.mock("@earendil-works/pi-tui", () => ({
   SettingsList: class MockSettingsList {
     constructor() {}

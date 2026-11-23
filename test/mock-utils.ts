@@ -14,7 +14,13 @@
 
 import { vi } from "vite-plus/test";
 import type { ExtensionContext, ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { Theme } from "../src/ui/types.js";
+/** Theme whose styling callers can neutralise: tests read text, not colour. */
+export type Theme = {
+  fg(color: string, text: string): string;
+  bg(color: string, text: string): string;
+  bold(text: string): string;
+  italic?: (text: string) => string;
+};
 
 /**
  * Shallow-merge two objects: source values win over defaults for each key.

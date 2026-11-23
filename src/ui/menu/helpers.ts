@@ -1,26 +1,9 @@
 /**
  * helpers.ts — Shared helpers for menu modules:
  * theme builders for SettingsList/SelectList, numeric validation,
- * model-option building, separator-skip installation, a swappable
- * delegating component, and a searchable pick-list submenu factory.
+ * separator-skip installation.
  */
-import type { Component, SettingItem, SettingsListTheme } from "@earendil-works/pi-tui";
-import type { Theme } from "../types.ts";
-import { SearchableSelectDialog, type SelectOption } from "../searchable-select.ts";
-
-/** Group header marker — shared by model-settings and widget-settings. */
-export const GROUP_HEADER_KIND = "group-header";
-export type GroupHeaderItem = SettingItem & { kind: typeof GROUP_HEADER_KIND };
-
-/** Create a non-selectable group header row for SettingsList. */
-export function headerItem(theme: Theme, label: string): GroupHeaderItem {
-  return {
-    id: SEPARATOR_ID,
-    kind: GROUP_HEADER_KIND,
-    label: theme.bold(theme.fg("accent", label)),
-    currentValue: "",
-  };
-}
+import type { SettingsListTheme } from "@earendil-works/pi-tui";
 
 /**
  * Item id that marks a separator/section-header row in SettingsList/SelectList
@@ -110,67 +93,6 @@ export function validateNumeric(value: string, min: number): number | undefined 
 }
 
 /**
- * Create a Component that delegates to a swappable inner component.
- * Use in submenus that switch between SelectList → Input (or similar).
- */
-export function createDelegatingComponent(initial: Component): Component & {
-  setActive(c: Component): void;
-  getActive(): Component;
-  focused?: boolean;
-  items?: any;
-  onSelect?: any;
-  onCancel?: any;
-} {
-  let active = initial;
-  return {
-    invalidate() {
-      active.invalidate?.();
-    },
-    render(width: number) {
-      return active.render(width);
-    },
-    handleInput(data: string) {
-      active.handleInput?.(data);
-    },
-    setActive(c: Component) {
-      active = c;
-    },
-    // Lets the SettingsListWrapper resolve the active leaf through nested
-    // delegators (mode picker → nested level picker) to decide key handling.
-    getActive() {
-      return active;
-    },
-    // Propagate focused to the active child so isFocusable() returns true,
-    // which tells SettingsListWrapper to passthrough keys instead of converting them.
-    get focused() {
-      return (active as any)?.focused ?? false;
-    },
-    set focused(value: boolean) {
-      if ((active as any)?.focused != null) (active as any).focused = value;
-    },
-    // Proxy SelectList properties so SettingsListWrapper can inspect and wire them.
-    get items() {
-      return (active as any)?.items;
-    },
-    set items(v: any) {
-      (active as any).items = v;
-    },
-    get onSelect() {
-      return (active as any)?.onSelect;
-    },
-    set onSelect(v: any) {
-      (active as any).onSelect = v;
-    },
-    get onCancel() {
-      return (active as any)?.onCancel;
-    },
-    set onCancel(v: any) {
-      (active as any).onCancel = v;
-    },
-  };
-}
-
-/**
  * Build a SelectListTheme from a pi-coding-agent Theme.
  * Produces the same visual style as buildSettingsListTheme: → cursor, accent colors, muted descriptions.
  */
@@ -185,35 +107,4 @@ export function buildSelectListTheme(theme: {
     scrollInfo: (text) => theme.fg("dim", text),
     noMatch: (text) => theme.fg("dim", text),
   };
-}
-
-/**
- * Build a searchable pick-list submenu backed by SearchableSelectDialog.
- *
- * Hides the delegator-forward-declaration dance shared by every menu that
- * needs "type to filter, Enter to pick" over a flat option list
- * (provider/model/type/worktree selection). onSelect may return a Component
- * to chain into next (e.g. a numeric-input submenu); returning void leaves
- * the submenu as-is so the caller can close it via done().
- */
-export function createSearchableSelect(
-  items: SelectOption[],
-  callbacks: { onSelect: (value: string) => Component | void; onCancel: () => void },
-  theme: Theme,
-): Component {
-  let delegator: ReturnType<typeof createDelegatingComponent>;
-  const selector = new SearchableSelectDialog(
-    items,
-    null,
-    {
-      onSelect: (value) => {
-        const next = callbacks.onSelect(value);
-        if (next) delegator.setActive(next);
-      },
-      onCancel: callbacks.onCancel,
-    },
-    theme,
-  );
-  delegator = createDelegatingComponent(selector);
-  return delegator;
 }

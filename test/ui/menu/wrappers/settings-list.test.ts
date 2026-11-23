@@ -7,12 +7,11 @@
 
 import { describe, it, expect, vi, type Mock } from "vite-plus/test";
 import { SelectList, type Component, type SelectItem, type SettingItem } from "@earendil-works/pi-tui";
-import { initTheme } from "@earendil-works/pi-coding-agent";
 import { SettingsListWrapper } from "../../../../src/ui/menu/wrappers/settings-list.js";
-import { buildSelectListTheme, createDelegatingComponent } from "../../../../src/ui/menu/helpers.js";
-import { SearchableSelectDialog } from "../../../../src/ui/searchable-select.js";
+import { buildSelectListTheme } from "../../../../src/ui/menu/helpers.js";
+import { createDelegatingComponent } from "../../../menu-test-helpers.js";
 import { selectListView } from "../../../pi-boundaries.js";
-import type { Theme } from "../../../../src/ui/types.js";
+import type { Theme } from "../../../mock-utils.js";
 
 const theme: Theme = {
   fg: (_color: string, text: string) => text,
@@ -370,29 +369,5 @@ describe("SettingsListWrapper — j/k drive a real SelectList submenu", () => {
     expect(selectListView(list).selectedIndex).toBe(0);
     wrapper.handleInput("k"); // wraps to the bottom
     expect(selectListView(list).selectedIndex).toBe(1);
-  });
-
-  it("keeps j/k as letters in a real SearchableSelectDialog submenu", () => {
-    // The dialog renders against pi's global theme; initialize it like the app does.
-    initTheme("dark", false);
-    const dialog = new SearchableSelectDialog(
-      [
-        { value: "m/a", label: "alpha" },
-        { value: "m/b", label: "beta" },
-      ],
-      null,
-      { onSelect: () => {}, onCancel: () => {} },
-      theme,
-    );
-    const settings = makeSettingsList([{ id: "x", label: "X", currentValue: "" }]);
-    settings.submenuComponent = createDelegatingComponent(dialog);
-    const wrapper = new SettingsListWrapper(settings, { title: "T", theme, onCancel: () => {} });
-    // 'j'/'k' must reach the search input and accumulate in the query, not
-    // move the list: after "k" + "a" the query is "ka", matching nothing.
-    // If "k" were converted to an arrow, the query would be "a" → [alpha].
-    wrapper.handleInput("k");
-    wrapper.handleInput("a");
-    const text = dialog.render(40).join("\n");
-    expect(text).toContain("No matching items");
   });
 });

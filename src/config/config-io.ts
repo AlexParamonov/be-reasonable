@@ -33,9 +33,6 @@ export const DEFAULT_BE_CONCISE: BeConciseConfig = {
   message: "Be concise",
 };
 
-/** A layer a persisted mutation can target. */
-export type ConfigTarget = "session" | "global" | "project";
-
 /** State of the project layer for the current IO instance. */
 export type ProjectLayerStatus = "untrusted" | "absent" | "loaded" | "malformed";
 
@@ -72,7 +69,6 @@ export interface LoadedConfig {
 export interface ConfigIO {
   load(options?: ConfigLoadOptions): LoadedConfig;
   saveGlobal(config: RawConfig): void;
-  saveProject(config: RawConfig): void;
 }
 
 /**
@@ -166,13 +162,6 @@ export function createConfigIO(projectDir?: string): ConfigIO {
     },
     saveGlobal: (config) => {
       writeJsonAtomic(CONFIG_PATH, config);
-    },
-    saveProject: (config) => {
-      if (!projectPath || projectStatus === "malformed" || projectStatus === "untrusted") {
-        console.warn(`[be-reasonable] Refusing to write project config (${projectStatus}); change not saved`);
-        return;
-      }
-      writeJsonAtomic(projectPath, config);
     },
   };
 }

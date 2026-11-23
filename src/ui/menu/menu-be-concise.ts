@@ -31,7 +31,7 @@ function buildItems(ctx: ExtensionCommandContext, store: ConfigStore): SettingIt
       label: "Answer prose bound (chars)",
       currentValue: String(store.beConcise.maxChars),
       submenu: createNumericSubmenu(ctx, { min: 1 }, (parsed) => {
-        store.setBeConciseMaxChars(parsed, "global");
+        store.setBeConciseMaxChars(parsed);
         ctx.ui.notify(`Answer prose bound set to ${parsed} chars`, "info");
       }),
       description: "Characters of prose allowed before a trim is requested; code blocks and tables are not counted.",
@@ -51,14 +51,14 @@ function buildOnChange(ctx: ExtensionCommandContext, store: ConfigStore) {
   return (id: string, newValue: string) => {
     switch (id) {
       case "enabled":
-        store.setBeConciseEnabled(newValue === "ON", "global");
+        store.setBeConciseEnabled(newValue === "ON");
         ctx.ui.notify(`Be concise ${newValue}`, "info");
         break;
       case "maxChars":
         // Handled by numeric submenus, not onChange
         break;
       case "message":
-        store.setBeConciseMessage(newValue, "global");
+        store.setBeConciseMessage(newValue);
         ctx.ui.notify("Trim request updated", "info");
         break;
     }
