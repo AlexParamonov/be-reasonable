@@ -29,7 +29,7 @@ Pi selects a skill when the task matches its description, or you can invoke it d
 
 ### be-concise extension
 
-Pi only. When an answer settles, the extension counts its prose, ignoring fenced code blocks and tables, and asks for one shorter answer if it passes your bound:
+Pi only. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer if it passes your bound:
 
 ```json
 // ~/.pi/agent/be-reasonable.json
@@ -42,7 +42,9 @@ Pi only. When an answer settles, the extension counts its prose, ignoring fenced
 }
 ```
 
-`enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten. One answer gets one trim request, so a long reply cannot start a loop of continuations. A settings menu is planned; until then these files are the only way to change them.
+`enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten.
+
+The request waits for the turn to end rather than cutting in while tools are still running, arrives as a queued follow-up so the shorter answer is its own turn, and comes once per prompt. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself. A settings menu is planned; until then these files are the only way to change the settings.
 
 ## Other agents
 
