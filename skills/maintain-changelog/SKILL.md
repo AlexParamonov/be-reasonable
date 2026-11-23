@@ -23,7 +23,8 @@ section. If it asked for a release, cut the version.
 3. Put details in at most two nested bullets, and only for: a new setting (name, default,
    where to toggle), a breaking change (plus its migration), or a number the reader acts on.
 4. Cut and link, never inline: test names, measured numbers, verification prose, issue ids,
-   rejected alternatives, ADR reasoning. `See ADR-0012.` carries the rest.
+   rejected alternatives, ADR reasoning, except what rule 3 puts in a nested bullet.
+   `See ADR-0012.` carries the rest.
    Failure: the entry becomes the acceptance-test record and no reader finishes it.
 5. State a limit only where a reader could be harmed by assuming the opposite, and in one
    clause. Do not enumerate the edge cases and attacks you considered.
@@ -50,13 +51,13 @@ Run the checker first, then rewrite. `scripts/` below is this skill's own direct
    length, not any guide outside the repository.
 2. For each bullet, sort its sentences into claim (reader-visible), detail (rule 3), proof
    (tests, ADRs, measurements) and provenance (`used to X, now Y`, issue ids).
-3. Rewrite each claim as a fresh sentence. Do not compress by keeping the head of one sentence
-   and the tail of another; that produces fragments nobody re-reads.
+3. Merge bullets that describe one change, keep the strongest claim, and rewrite it as a fresh
+   sentence. Do not compress by keeping the head of one sentence and the tail of another; that
+   produces fragments nobody re-reads.
 4. Move proof and provenance to its home (ADR, design doc, commit message) before cutting it
    from the entry. Confirm the destination holds it; report what you cannot place rather than
    deleting it.
-5. Merge bullets that describe one change, keeping the strongest claim.
-6. Re-run the checker until it is clean, then check nothing was lost: every setting name,
+5. Re-run the checker until it is clean, then the **no-loss** check: every setting name,
    identifier and number from the removed text is still in the file, or in the doc you named
    for it.
 
@@ -72,5 +73,6 @@ dropping reader-visible behavior means the release needs an ADR, not a longer bu
 - [ ] Every bullet's first sentence names what the reader sees, sets or does, and is under 25
       words.
 - [ ] `git diff` touches nothing below a `## [x.y.z]` heading.
-- [ ] No fact, setting name or number was lost: each survives in the file or its new home.
+- [ ] **No-loss** holds: every setting name, identifier and number survives in the file or its
+      new home.
 - [ ] Breaking changes name their migration; new settings name their default and location.
