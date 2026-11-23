@@ -21,7 +21,7 @@ describe("ConfigStore reads", () => {
     const store = new ConfigStore(minimalIO());
     expect(store.beConcise.enabled).toBe(false);
     expect(store.beConcise.maxChars).toBe(1200);
-    expect(store.beConcise.message).toContain("verdict first");
+    expect(store.beConcise.message).toBe("Be concise");
   });
 
   it("returns configured values when present", () => {

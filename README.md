@@ -37,12 +37,12 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
   "beConcise": {
     "enabled": true,
     "maxChars": 1200,
-    "message": "Cut that answer to what changes what I do next."
+    "message": "Be concise"
   }
 }
 ```
 
-`enabled` is off until you set it, and `message` defaults to the text `/skill:be-concise` carries. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten.
+`enabled` is off until you set it, and `message` is the instruction sent: those same two words by default, the ones `/skill:be-concise` carries. An elaborate instruction tested worse than the plain one. A trusted project's `.pi/be-reasonable.json` may set `maxChars` only: the switch and its wording stay yours. A value the file gets wrong is dropped with a warning naming the file, the key and what it expected, and the default applies instead; the file itself is never rewritten.
 
 `/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A change is written to the global file as you make it, so a project's `maxChars` still wins over it.
 

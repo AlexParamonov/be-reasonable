@@ -29,9 +29,8 @@ const CONFIG_PATH = path.join(CONFIG_DIR, CONFIG_FILE_NAME);
 export const DEFAULT_BE_CONCISE: BeConciseConfig = {
   enabled: false,
   maxChars: 1200,
-  message:
-    "Cut that answer to what changes what I do next: verdict first, then only the evidence, decisions " +
-    "and risks I would otherwise re-ask for. Keep tables and commands that carry the answer.",
+  // The words /skill:be-concise carries: an elaborate instruction tested worse than the plain one.
+  message: "Be concise",
 };
 
 /** A layer a persisted mutation can target. */
