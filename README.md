@@ -24,6 +24,7 @@ Pi selects a skill when the task matches its description, or you can invoke it d
 
 - `/skill:be-reasonable` reviews unnecessary complexity.
 - `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
+- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`. It sets `disable-model-invocation: true`, so an agent never selects it on its own; run it yourself, and pass the change to document or nothing at all to tidy the Unreleased section.
 
 ## Other agents
 
@@ -56,4 +57,4 @@ npx skills@latest add AlexParamonov/be-reasonable -a opencode
 npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
 ```
 
-To install only one skill, add `--skill maintain-tests` or `--skill be-reasonable`. Use `-g` for a global install; `npx skills --help` lists supported agents.
+To install only one skill, add `--skill maintain-changelog`, `--skill maintain-tests` or `--skill be-reasonable`. Use `-g` for a global install; `npx skills --help` lists supported agents.
