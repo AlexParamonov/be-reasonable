@@ -20,3 +20,6 @@ export type HidableSkill = (typeof HIDABLE_SKILLS)[number]["name"];
 export function isHidableSkill(key: string): key is HidableSkill {
   return HIDABLE_SKILLS.some((skill) => skill.name === key);
 }
+
+/** The one skill whose moment the prompt itself names, because a listing alone loses to task momentum. */
+export const BE_REASONABLE_SKILL: HidableSkill = "be-reasonable";
