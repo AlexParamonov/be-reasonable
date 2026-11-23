@@ -23,10 +23,10 @@ pi install -l npm:be-reasonable
 ### Skills
 
 Pi selects a skill when the task matches its description, or you can invoke it directly:
-- `/skill:be-reasonable` reviews unnecessary complexity.
+- `/skill:be-reasonable` reviews unnecessary complexity. Pi is also told to apply it before reporting work complete.
 - `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
-- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing at all to tidy the Unreleased section. An agent does not pick it up on its own, because it is switched off in `/be-reasonable-settings`; switch it on there if you want one to.
-- `/skill:be-concise` cuts the last reply down, automatically and fully configurable via /be-reasonable-settings menu
+- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing at all to tidy the Unreleased section. Pi will not reach for it on its own, because its row in `/be-reasonable-settings` is off.
+- `/skill:be-concise` cuts the last reply down, automatically and fully configurable via /be-reasonable-settings menu.
 
 ### be-concise extension
 
@@ -67,6 +67,8 @@ A switched-off skill leaves the model's skill listing from the next turn, and `/
 `be-concise` has no row. It ships `disable-model-invocation: true` in its own `SKILL.md`, which is pi's own switch and applies before ours, so a setting could never show it. `maintain-changelog` used to ship that way too: its row is now the switch, and it is off by default, so nothing changes until you turn it on.
 
 ## Other agents
+
+These agents read the `SKILL.md` files and nothing else, so the skill visibility setting is pi's alone.
 
 Claude Code users can install the GitHub plugin:
 

@@ -1,18 +1,22 @@
 {
   "name": "be-reasonable",
-  "version": "0.4.0",
+  "version": "0.2.0",
   "description": "Simplify code without sacrificing correctness, keep tests focused on behavior, keep changelogs readable.",
   "keywords": [
-    "agent-skills",
-    "ai-agents",
-    "changelog",
-    "code-review",
-    "maintainability",
+    "pi-package",
     "pi",
-    "simplicity",
+    "pi-coding-agent",
+    "pi-extension",
+    "agent-skills",
     "skills",
+    "ai-agents",
+    "code-review",
+    "code-simplification",
+    "maintainability",
     "test-quality",
-    "testing"
+    "testing",
+    "changelog",
+    "verbosity"
   ],
   "license": "MIT",
   "repository": {
@@ -23,6 +27,7 @@
     "skills",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {

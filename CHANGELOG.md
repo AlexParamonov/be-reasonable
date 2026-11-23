@@ -6,27 +6,28 @@ setting (name, default, where to toggle), a breaking change's migration, or a nu
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 ### Added
 
+- **`be-concise`** — pi counts the prose in your final answer and asks for a shorter one when it passes your
+  bound. One request per answer, and an interrupted answer gets none.
+  - `beConcise`: `enabled` off by default, `maxChars` 700, `message` `Be concise`. Set it in
+    `~/.pi/agent/be-reasonable.json`, in a trusted project's `.pi/be-reasonable.json`, or in the menu.
+- **`maintain-changelog` skill** — writes or tidies `CHANGELOG.md`, one bullet per observable change, with a
+  checker that refuses an over-long bullet. An agent may load it on its own: only its description holds it back.
 - **`/be-reasonable-settings` menu** — change any setting without editing a file. Each row first asks which
   level to write, Global or Project, and a value the project file provides is marked `[project]`.
 - **Skills visibility switch** — keep a shipped skill out of the model's listing; `/skill:name` still runs it.
-  - `modelInvocable` in `~/.pi/agent/be-reasonable.json` or a trusted project's `.pi/be-reasonable.json`, or the
-    **Skills** rows in the menu. Defaults: `be-reasonable` and `maintain-tests` shown, `maintain-changelog` not.
-- **Prompt reminder for `be-reasonable`** — the model is told to load and apply the skill before it reports
-  work complete. Pi only.
+  - `modelInvocable`, per skill, shown by default except `maintain-changelog`. Toggle it in the menu.
+- **Prompt reminder for `be-reasonable`** — the model is told to load and apply the skill before it reports work
+  complete. Pi only.
 
 ### Changed
 
 - **`be-reasonable` description** — starts with when to load it, so an agent picks it up on its own more often.
-- **One trim request per answer, not per prompt** — a later run in the same turn, one a background notification
-  started for example, gets its own request, and a request you typed yourself is never repeated.
-- **Answer prose bound** — defaults to 700 characters, down from 1200.
-- **Trim request wording** — defaults to the two words `Be concise`, replacing the longer instruction the skill
-  used to carry.
-- **Project config** — overrides every `beConcise` setting, not only the bound, so one repository can run with its
-  own switch, bound and wording.
-- **`maintain-changelog` no longer ships `disable-model-invocation: true`** — its visibility is the setting now,
-  and it is off by default. Offer it to the model from the **Skills** rows.
-  - Claude Code and Codex read no such setting: there an agent may now select the skill on its own, held back
-    only by its description.
+
+### Removed
+
+- **Prompt templates** — `/be-reasonable` and `/maintain-tests` are gone; the package ships skills only.
+  - Run `/skill:be-reasonable` and `/skill:maintain-tests` instead.
