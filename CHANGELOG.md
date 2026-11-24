@@ -6,6 +6,10 @@ setting (name, default, where to toggle), a breaking change's migration, or a nu
 
 ## [Unreleased]
 
+### Removed
+
+- **`be-concise` skill** — removed the manual `/skill:be-concise` shortcut; automatic shortening remains in the pi extension.
+
 ## [0.3.0] - 2026-11-24
 
 ### Changed

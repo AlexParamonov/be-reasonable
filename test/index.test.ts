@@ -203,7 +203,7 @@ function runOptions(skillNames: string[]): {
   return { systemPromptOptions: { skills: skillNames.map((name) => ({ name })), sections: {} } };
 }
 
-const ALL_SKILLS = ["be-reasonable", "maintain-changelog", "maintain-tests", "be-concise", "my-own-skill"];
+const ALL_SKILLS = ["be-reasonable", "maintain-changelog", "maintain-tests", "my-own-skill"];
 
 // Every test writes its own global config file and leaves none behind, so no test sees another's layers.
 beforeEach(() => {
@@ -228,7 +228,6 @@ describe("what the model is shown", () => {
     expect(event.systemPromptOptions.skills.map((s) => s.name)).toEqual([
       "be-reasonable",
       "maintain-changelog",
-      "be-concise",
       "my-own-skill",
     ]);
   });

@@ -2,10 +2,7 @@
  * skills.ts — The shipped skills whose model visibility this extension's settings switch.
  *
  * Order is the settings menu's order. `shownByDefault` is what a layer that says nothing means, and it is what
- * each skill shipped as before the switch existed. A skill that ships `disable-model-invocation: true` in its
- * own SKILL.md cannot be switched on from here: pi applies the file's flag after our filter, so `be-concise`
- * is not listed at all - it stays out of the listing on purpose, and its trim request is the plain words the
- * model answers without loading anything.
+ * each skill shipped as before the switch existed.
  */
 export const HIDABLE_SKILLS = [
   { name: "be-reasonable", shownByDefault: true },

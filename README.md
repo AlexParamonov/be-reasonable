@@ -2,7 +2,7 @@
 
 Less to review: simpler code, tests that assert behavior, changelogs a person can read, and answers that fit on a screen.
 
-Four skills and one extension. An agent picks a skill when the task matches, or you run it yourself. The skills work in any agent that reads `SKILL.md`. The extension is pi only and on by default.
+Three skills and one extension. An agent picks a skill when the task matches, or you run it yourself. The skills work in any agent that reads `SKILL.md`. The extension is pi only and on by default.
 
 ## Pi
 
@@ -25,7 +25,6 @@ You see both answers in the transcript. The model sees only the full answer. It 
 - `/skill:be-reasonable` cuts the complexity a reviewer would push back on. Pi is told to apply it before it reports work complete.
 - `/skill:maintain-tests` keeps tests on behavior. No assertions on copy, class names or private methods.
 - `/skill:maintain-changelog` writes one bullet per change a reader can observe, with a checker that refuses an over-long one. Its row is off, so pi will not pick it up on its own.
-- `/skill:be-concise` asks for a shorter answer by hand.
 
 ### Settings
 
@@ -79,7 +78,7 @@ npx skills@latest add AlexParamonov/be-reasonable -a opencode
 npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
 ```
 
-To install one skill, add `--skill maintain-changelog`, `--skill maintain-tests`, `--skill be-concise` or `--skill be-reasonable`. Use `-g` for a global install. `npx skills --help` lists supported agents.
+To install one skill, add `--skill maintain-changelog`, `--skill maintain-tests` or `--skill be-reasonable`. Use `-g` for a global install. `npx skills --help` lists supported agents.
 
 ## Development
 

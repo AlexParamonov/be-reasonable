@@ -131,7 +131,7 @@ function validateSections(raw: unknown, reader: LayerReader): RawConfig {
   return cleaned;
 }
 
-/** Keep a switch for every shipped skill this file names correctly, warn and drop the rest. */
+/** Keep switches for supported skills, warn and drop unknown or unsupported names. */
 function cleanModelInvocableSection(section: unknown, reader: LayerReader): RawModelInvocable {
   const kept: RawModelInvocable = {};
   if (!isPlainObject(section)) {
@@ -141,7 +141,7 @@ function cleanModelInvocableSection(section: unknown, reader: LayerReader): RawM
   for (const [key, value] of Object.entries(section)) {
     if (value === undefined) continue;
     if (!isHidableSkill(key)) {
-      warnIncompatible(reader, `modelInvocable.${key}`, value, "a skill this extension ships");
+      warnIncompatible(reader, `modelInvocable.${key}`, value, "a skill with a visibility setting");
       continue;
     }
     if (isValidValue(BOOL, value)) kept[key] = value as boolean;
