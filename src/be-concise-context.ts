@@ -28,11 +28,12 @@ export function wasTrimRequested(entries: readonly ProjectedSessionEntry[]): boo
 
 export function trimContextEdits(entries: readonly ProjectedSessionEntry[]): ContextEditEntryDraft[] {
   const edits: ContextEditEntryDraft[] = [];
-  let inTrim = false;
+  let inTrimExchange = false;
   for (const { sourceEntry, messages } of entries) {
     const kind = classify(sourceEntry);
-    if (kind === "request" || kind === "barrier") inTrim = kind === "request";
-    if (inTrim && messages.length > 0 && (kind === "request" || kind === "output")) {
+    if (kind === "transparent") continue;
+    if (kind !== "output") inTrimExchange = kind === "request";
+    if (inTrimExchange && messages.length > 0) {
       edits.push({ type: "context_edit", targetId: sourceEntry.id, replacement: null });
     }
   }
