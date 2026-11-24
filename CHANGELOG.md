@@ -6,6 +6,10 @@ setting (name, default, where to toggle), a breaking change's migration, or a nu
 
 ## [Unreleased]
 
+### Changed
+
+- **`be-concise`** — the trim request and shorter answer stay in the transcript, but later replies use the full original answer.
+
 ## [0.2.0] - 2026-11-23
 
 ### Added

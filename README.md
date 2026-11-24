@@ -49,6 +49,8 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 
 The request waits for the turn to end rather than cutting in while tools are still running. It comes once per answer: the answer to a request is never asked again, and a later run in the same turn, one a background notification started for example, gets its own request. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
 
+When the shorter answer ends, Pi leaves it and the trim request in the transcript, even after you reopen the session, but removes them from the model's context. Later replies use the full original answer, even if you refer to the shorter one. If Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it at the end of that answer.
+
 ### Skill visibility
 
 Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn for something you never let the agent choose. Switch it off in `/be-reasonable-settings` under **Skills**, one row per skill:
