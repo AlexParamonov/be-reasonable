@@ -12,6 +12,7 @@ import {
   type BoundaryState,
   type ExtensionAPI,
   type ExtensionContext,
+  type SessionBoundaryDraft,
   type TurnEndEvent,
 } from "@earendil-works/pi-coding-agent";
 import { assistant, toolCallAnswer, toolResult } from "./concise-fixtures.js";
@@ -98,11 +99,34 @@ async function startExtension(ctx = createFakeCtx()) {
 
 type RunningExtension = Awaited<ReturnType<typeof startExtension>>;
 
-function boundaryState(session: SessionManager, outcome: BoundaryState["outcome"]): BoundaryState {
-  const { entries, messages } = session.buildSessionProjection();
+function applyBoundaryDrafts(session: SessionManager, drafts: SessionBoundaryDraft[]) {
+  for (const draft of drafts) {
+    switch (draft.type) {
+      case "custom":
+        session.appendCustomEntry(draft.customType, draft.data);
+        break;
+      case "context_edit":
+        session.appendContextEdit(draft.targetId, draft.replacement);
+        break;
+      default:
+        throw new Error(`Unexpected boundary draft: ${draft.type}`);
+    }
+  }
+}
+
+function boundaryState(
+  session: SessionManager,
+  outcome: BoundaryState["outcome"],
+  drafts: SessionBoundaryDraft[],
+): BoundaryState {
+  const header = session.getHeader();
+  if (!header) throw new Error("Missing session header");
+  const preview = SessionManager.inMemory(session.getCwd(), undefined, [header, ...session.getBranch()]);
+  applyBoundaryDrafts(preview, drafts);
+  const { entries, messages } = preview.buildSessionProjection();
   return {
     outcome,
-    entries: [],
+    entries: drafts,
     continue: false,
     context: {
       contextEntries: entries,
@@ -119,11 +143,8 @@ async function dispatchBoundary(
   session: SessionManager,
   event: AgentBeforeSettleEvent | TurnEndEvent,
 ) {
-  const drafts = (await handlers.get(event.type)?.(event, ctx))?.entries ?? [];
-  for (const draft of drafts) {
-    if (draft.type !== "context_edit") throw new Error(`Unexpected boundary draft: ${draft.type}`);
-    session.appendContextEdit(draft.targetId, draft.replacement);
-  }
+  const drafts = (await handlers.get(event.type)?.(event, ctx))?.entries ?? event.entries;
+  applyBoundaryDrafts(session, drafts);
   return drafts;
 }
 
@@ -131,8 +152,12 @@ function dispatchBeforeSettle(
   extension: RunningExtension,
   session: SessionManager,
   outcome: BoundaryState["outcome"] = "completed",
+  drafts: SessionBoundaryDraft[] = [],
 ) {
-  return dispatchBoundary(extension, session, { type: "agent_before_settle", ...boundaryState(session, outcome) });
+  return dispatchBoundary(extension, session, {
+    type: "agent_before_settle",
+    ...boundaryState(session, outcome, drafts),
+  });
 }
 
 async function endTurn(
@@ -140,13 +165,14 @@ async function endTurn(
   session: SessionManager,
   message = assistant(SHORT),
   toolResults: TurnEndEvent["toolResults"] = [],
+  earlierDrafts: SessionBoundaryDraft[] = [],
 ) {
   const messageEntryId = session.appendMessage(message);
   const toolResultEntryIds = toolResults.map((result) => session.appendMessage(result));
   const outcome = message.stopReason === "error" ? "error" : message.stopReason === "aborted" ? "aborted" : "completed";
   const drafts = await dispatchBoundary(extension, session, {
     type: "turn_end",
-    ...boundaryState(session, outcome),
+    ...boundaryState(session, outcome, earlierDrafts),
     turnIndex: 0,
     message,
     toolResults,
@@ -440,6 +466,41 @@ describe("be-concise extension", () => {
     appendBarrier(session, request);
 
     expect((await endTurn(extension, session)).drafts).toEqual(hides(request, partial));
+  });
+
+  describe.each(["turn_end", "agent_before_settle"] as const)("earlier drafts at %s", (boundary) => {
+    async function finishAnswer(extension: RunningExtension, session: SessionManager, earlier: SessionBoundaryDraft[]) {
+      if (boundary === "turn_end") {
+        const { drafts, messageEntryId } = await endTurn(extension, session, assistant(SHORT), [], earlier);
+        return { drafts, messageEntryId };
+      }
+      const messageEntryId = session.appendMessage(assistant(SHORT));
+      const drafts = await dispatchBeforeSettle(extension, session, "completed", earlier);
+      return { drafts, messageEntryId };
+    }
+
+    it("keeps earlier proposals in order and does not repeat their omissions", async () => {
+      const extension = await startExtension();
+      const { session, request } = startTrim();
+      const earlier: SessionBoundaryDraft[] = [
+        { type: "custom", customType: "before-omission" },
+        { type: "context_edit", targetId: request, replacement: null },
+        { type: "custom", customType: "after-omission" },
+      ];
+
+      const { drafts, messageEntryId } = await finishAnswer(extension, session, earlier);
+
+      expect(drafts).toEqual([...earlier, ...hides(messageEntryId)]);
+    });
+
+    it("keeps earlier proposals when there is nothing to hide", async () => {
+      const extension = await startExtension();
+      const earlier: SessionBoundaryDraft[] = [{ type: "custom", customType: "other-extension" }];
+
+      const { drafts } = await finishAnswer(extension, longAnswer(), earlier);
+
+      expect(drafts).toEqual(earlier);
+    });
   });
 
   it("straightens old exchanges and finishes interrupted edits without hiding anything twice", async () => {
