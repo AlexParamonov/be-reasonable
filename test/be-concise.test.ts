@@ -7,7 +7,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { proseLength, shouldRequestTrim } from "../src/be-concise.js";
 import { trimContextEdits } from "../src/be-concise-context.js";
-import { assistant, toolResult } from "./concise-fixtures.js";
+import { assistant, toolCallAnswer, toolResult } from "./concise-fixtures.js";
 import type { BeConciseConfig } from "../src/config/config-io.js";
 
 function settings(overrides: Partial<BeConciseConfig> = {}): BeConciseConfig {
@@ -19,12 +19,7 @@ describe("trim context edits", () => {
     const session = SessionManager.inMemory();
     session.appendMessage(assistant("Full answer"));
     const request = session.appendCustomMessageEntry("be-concise", "Cut it.", true);
-    const call = session.appendMessage(
-      assistant("", {
-        content: [{ type: "toolCall", id: "call", name: "read", arguments: {} }],
-        stopReason: "toolUse",
-      }),
-    );
+    const call = session.appendMessage(toolCallAnswer());
     const result = session.appendMessage(toolResult());
     const reply = session.appendMessage(assistant("Short answer"));
 

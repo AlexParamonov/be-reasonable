@@ -1,9 +1,6 @@
 /**
- * index.ts — Extension entry: watch the final answer and ask for a trim when its prose passes the bound.
- *
- * The bound is read at `agent_before_settle`, where the run's answer can still be seen, and the request is
- * sent at `agent_settled`, where Pi has stopped continuing on its own: that is the final answer, and a
- * message from the middle of a task is never cut short.
+ * Measure the final answer before settle and request a trim after settle.
+ * Omit the trim exchange from model context at Pi's boundaries without altering the transcript.
  */
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
@@ -11,13 +8,12 @@ import { ConfigStore } from "./config/config-store.ts";
 import { showSettingsMenu } from "./ui/menu/menus.ts";
 import { BE_REASONABLE_SKILL } from "./skills.ts";
 import { shouldRequestTrim } from "./be-concise.ts";
+import { TRIM_TYPE, trimContextEdits, wasTrimRequested } from "./be-concise-context.ts";
 
-const TRIM_TYPE = "be-concise";
-
-function lastText(messages: readonly { role: string; content: unknown }[], role: string): string {
+function lastAssistantText(messages: readonly { role: string; content: unknown }[]): string {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
-    if (message.role !== role) continue;
+    if (message.role !== "assistant") continue;
     if (typeof message.content === "string") return message.content;
     const parts = Array.isArray(message.content) ? message.content : [];
     return parts
@@ -62,18 +58,21 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("agent_before_settle", async (event) => {
-    if (event.outcome !== "completed") {
-      trimWanted = false;
-      return;
-    }
-    const { llmMessages } = event.context;
-    trimWanted = shouldRequestTrim({
-      text: lastText(llmMessages, "assistant"),
-      beConcise: store.beConcise,
-      // Pi hands the model our request as a user message with exactly this text (messages.js convertToLlm).
-      alreadyTrimmed: lastText(llmMessages, "user") === store.beConcise.message,
-    });
+  pi.on("turn_end", (event) => {
+    if (event.outcome === "error" || event.toolResults.length > 0) return;
+    return { entries: trimContextEdits(event.context.contextEntries) };
+  });
+
+  pi.on("agent_before_settle", (event) => {
+    const { contextEntries, llmMessages } = event.context;
+    trimWanted =
+      event.outcome === "completed" &&
+      shouldRequestTrim({
+        text: lastAssistantText(llmMessages),
+        beConcise: store.beConcise,
+        alreadyTrimmed: wasTrimRequested(contextEntries),
+      });
+    return { entries: trimContextEdits(contextEntries) };
   });
 
   pi.on("agent_settled", async (event, ctx) => {

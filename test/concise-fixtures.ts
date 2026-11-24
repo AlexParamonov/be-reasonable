@@ -21,6 +21,13 @@ export function assistant(text: string, overrides: Partial<AssistantMessage> = {
   };
 }
 
+export function toolCallAnswer(): AssistantMessage {
+  return assistant("", {
+    content: [{ type: "toolCall", id: "call", name: "read", arguments: {} }],
+    stopReason: "toolUse",
+  });
+}
+
 export function toolResult(): ToolResultMessage {
   return {
     role: "toolResult",

@@ -1,21 +1,26 @@
-/**
- * index.test.ts — When the extension asks for a shorter answer.
- *
- * The seam is the extension's own event handlers: a fake Pi API records what it sends, and the config
- * comes from a real config file in a temp agent dir. A test hands the settle boundary the conversation
- * Pi hands it, the user messages of the turn and the answer that settled, because the request reads it.
- */
+/** Extension behavior through Pi's event boundaries, using in-memory session projections. */
 
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vite-plus/test";
 import { join } from "node:path";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+  convertToLlm,
+  SessionManager,
+  type AgentBeforeSettleEvent,
+  type BoundaryResult,
+  type BoundaryState,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type TurnEndEvent,
+} from "@earendil-works/pi-coding-agent";
+import { assistant, toolCallAnswer, toolResult } from "./concise-fixtures.js";
 
 const MOCK_AGENT_DIR = mkdtempSync(join(tmpdir(), "be-reasonable-ext-global-"));
 const GLOBAL_CONFIG_PATH = join(MOCK_AGENT_DIR, "be-reasonable.json");
 
-vi.mock("@earendil-works/pi-coding-agent", () => ({
+vi.mock(import("@earendil-works/pi-coding-agent"), async (importOriginal) => ({
+  ...(await importOriginal()),
   getAgentDir: () => MOCK_AGENT_DIR,
 }));
 
@@ -27,15 +32,21 @@ const { default: beReasonable } = await import("../src/index.js");
 
 const TRIM_MESSAGE = "Cut it.";
 const PROMPT = "Ship it?";
-const NOTIFICATION = "Subagent finished.";
 const LONG = "Verdict: ship it. " + "detail ".repeat(20);
 const SHORT = "Verdict: ship it.";
 
-/** A settled long answer to a prompt, the shortest conversation that earns a request. */
-const ASKED: Turn[] = [
-  { role: "user", text: PROMPT },
-  { role: "assistant", text: LONG },
-];
+function longAnswer(prompt = PROMPT): SessionManager {
+  const session = SessionManager.inMemory();
+  session.appendMessage({ role: "user", content: prompt, timestamp: 0 });
+  session.appendMessage(assistant(LONG));
+  return session;
+}
+
+function startTrim(wording = TRIM_MESSAGE) {
+  const session = longAnswer();
+  const request = session.appendCustomMessageEntry("be-concise", wording, true);
+  return { session, request };
+}
 
 function writeConfig(extra: Record<string, unknown> = {}): void {
   writeFileSync(
@@ -48,14 +59,7 @@ interface Sent {
   message: { customType: string; content: string; display: boolean };
   options?: { triggerTurn?: boolean; deliverAs?: string };
 }
-type FakeEvent = Record<string, unknown>;
-type FakeHandler = (event: FakeEvent, ctx: ExtensionContext) => Promise<unknown>;
-
-/** One message of the conversation the settle boundary sees. */
-interface Turn {
-  role: "user" | "assistant";
-  text: string;
-}
+type FakeHandler = (event: unknown, ctx: ExtensionContext) => BoundaryResult | void | Promise<BoundaryResult | void>;
 
 /** Fake Pi API: records registered handlers and every message the extension sends. */
 function createFakePi() {
@@ -85,23 +89,80 @@ function createFakeCtx(overrides: Partial<Pick<ExtensionContext, "hasPendingMess
   } as unknown as ExtensionContext;
 }
 
-/** One settled answer: the settle boundary sees the conversation, then Pi stops running on its own. */
-async function settle(
-  handlers: Map<string, FakeHandler>,
-  conversation: Turn[],
-  ctx: ExtensionContext,
-  settled: { aborted: boolean } = { aborted: false },
-): Promise<void> {
-  await handlers.get("agent_before_settle")?.(beforeSettle(conversation), ctx);
-  await handlers.get("agent_settled")?.(settled, ctx);
+async function startExtension(ctx = createFakeCtx()) {
+  const fake = createFakePi();
+  beReasonable(fake.pi);
+  await fake.handlers.get("session_start")?.({}, ctx);
+  return { ...fake, ctx };
 }
 
-function beforeSettle(conversation: Turn[]): FakeEvent {
+type RunningExtension = Awaited<ReturnType<typeof startExtension>>;
+
+function boundaryState(session: SessionManager, outcome: BoundaryState["outcome"]): BoundaryState {
+  const { entries, messages } = session.buildSessionProjection();
   return {
-    outcome: "completed",
+    outcome,
     entries: [],
-    context: { llmMessages: conversation.map(({ role, text }) => ({ role, content: [{ type: "text", text }] })) },
+    continue: false,
+    context: {
+      contextEntries: entries,
+      contextMessages: messages,
+      llmMessages: convertToLlm(messages),
+      pendingMessages: [],
+      canContinue: false,
+    },
   };
+}
+
+function beforeSettle(
+  session: SessionManager,
+  outcome: BoundaryState["outcome"] = "completed",
+): AgentBeforeSettleEvent {
+  return { type: "agent_before_settle", ...boundaryState(session, outcome) };
+}
+
+async function dispatchBoundary(
+  { handlers, ctx }: RunningExtension,
+  session: SessionManager,
+  event: AgentBeforeSettleEvent | TurnEndEvent,
+) {
+  const drafts = (await handlers.get(event.type)?.(event, ctx))?.entries ?? [];
+  for (const draft of drafts) {
+    if (draft.type !== "context_edit") throw new Error(`Unexpected boundary draft: ${draft.type}`);
+    session.appendContextEdit(draft.targetId, draft.replacement);
+  }
+  return drafts;
+}
+
+async function endTurn(
+  extension: RunningExtension,
+  session: SessionManager,
+  message = assistant(SHORT),
+  toolResults: TurnEndEvent["toolResults"] = [],
+) {
+  const messageEntryId = session.appendMessage(message);
+  const toolResultEntryIds = toolResults.map((result) => session.appendMessage(result));
+  const outcome = message.stopReason === "error" ? "error" : message.stopReason === "aborted" ? "aborted" : "completed";
+  const drafts = await dispatchBoundary(extension, session, {
+    type: "turn_end",
+    ...boundaryState(session, outcome),
+    turnIndex: 0,
+    message,
+    toolResults,
+    messageEntryId,
+    toolResultEntryIds,
+  });
+  return { drafts, messageEntryId, toolResultEntryIds };
+}
+
+async function settle(extension: RunningExtension, session: SessionManager, aborted = false) {
+  const drafts = await dispatchBoundary(extension, session, beforeSettle(session));
+  await extension.handlers.get("agent_settled")?.({ aborted }, extension.ctx);
+  return drafts;
+}
+
+function hides(...ids: string[]) {
+  return ids.map((targetId) => ({ type: "context_edit", targetId, replacement: null }));
 }
 
 /** One run's prompt options, as pi hands them to before_agent_start, and the skill names it lists. */
@@ -197,107 +258,214 @@ describe("be-concise extension", () => {
   });
 
   it("asks for one shorter answer once the long answer settles", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
+    const extension = await startExtension();
 
-    await settle(handlers, ASKED, ctx);
+    expect(await settle(extension, longAnswer())).toEqual([]);
 
-    expect(sent).toHaveLength(1);
-    expect(sent[0].message.content).toBe(TRIM_MESSAGE);
-    expect(sent[0].options).toEqual({ triggerTurn: true });
+    expect(extension.sent).toEqual([
+      { message: { customType: "be-concise", content: TRIM_MESSAGE, display: true }, options: { triggerTurn: true } },
+    ]);
   });
 
-  it("stays quiet on the answer our own request started", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
-    await settle(handlers, ASKED, ctx);
+  it("does not ask again once the full answer is back at the end of the context", async () => {
+    const extension = await startExtension();
+    const { session } = startTrim();
+    await endTurn(extension, session);
 
-    await settle(handlers, [...ASKED, { role: "user", text: TRIM_MESSAGE }, { role: "assistant", text: LONG }], ctx);
+    await settle(extension, session);
 
-    expect(sent).toHaveLength(1);
+    expect(extension.sent).toEqual([]);
   });
 
-  it("asks again when a later run of the same prompt answers long", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
-    await settle(handlers, ASKED, ctx);
+  it("recognises a tagged request with earlier wording across tool and system entries", async () => {
+    const extension = await startExtension();
+    const { session } = startTrim("Earlier wording");
+    const call = toolCallAnswer();
+    call.content.unshift({ type: "text", text: LONG });
+    session.appendMessage(call);
+    session.appendMessage(toolResult());
+    session.appendMessage({ role: "system", content: "A system patch", timestamp: 0 });
 
-    await settle(handlers, [...ASKED, { role: "user", text: NOTIFICATION }, { role: "assistant", text: LONG }], ctx);
+    await settle(extension, session);
 
-    expect(sent).toHaveLength(2);
+    expect(extension.sent).toEqual([]);
   });
 
-  it("stays quiet when the human typed the trim request themselves", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
+  it("asks once for a later long answer after a previous exchange was hidden", async () => {
+    const extension = await startExtension();
+    const { session } = startTrim();
+    await endTurn(extension, session);
+    session.appendCustomMessageEntry("notification", "Subagent finished.", true);
+    session.appendMessage(assistant(LONG));
+    await settle(extension, session);
 
-    await settle(
-      handlers,
-      [
-        { role: "user", text: TRIM_MESSAGE },
-        { role: "assistant", text: LONG },
-      ],
-      ctx,
-    );
+    session.appendCustomMessageEntry("be-concise", TRIM_MESSAGE, true);
+    await endTurn(extension, session);
+    await settle(extension, session);
 
-    expect(sent).toHaveLength(0);
+    expect(extension.sent).toHaveLength(1);
+  });
+
+  it("does not mistake a human message for the extension request even when its text matches", async () => {
+    const extension = await startExtension();
+
+    await settle(extension, longAnswer(TRIM_MESSAGE));
+
+    expect(extension.sent).toHaveLength(1);
   });
 
   it("stays quiet while the user has a message queued", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx({ hasPendingMessages: () => true });
-    await handlers.get("session_start")?.({}, ctx);
+    const extension = await startExtension(createFakeCtx({ hasPendingMessages: () => true }));
 
-    await settle(handlers, ASKED, ctx);
+    await settle(extension, longAnswer());
 
-    expect(sent).toHaveLength(0);
+    expect(extension.sent).toEqual([]);
   });
 
   it("stays quiet when the answer was interrupted", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
+    const extension = await startExtension();
 
-    await settle(handlers, ASKED, ctx, { aborted: true });
+    await settle(extension, longAnswer(), true);
 
-    expect(sent).toHaveLength(0);
+    expect(extension.sent).toEqual([]);
   });
 
   it("measures the answer that settled, not a longer one before it", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
+    const extension = await startExtension();
+    const session = longAnswer();
+    await dispatchBoundary(extension, session, beforeSettle(session));
 
-    const prompt: Turn[] = [{ role: "user", text: PROMPT }];
+    session.appendMessage(assistant(SHORT));
+    await settle(extension, session);
 
-    await handlers.get("agent_before_settle")?.(beforeSettle([...prompt, { role: "assistant", text: LONG }]), ctx);
-    await handlers.get("agent_before_settle")?.(beforeSettle([...prompt, { role: "assistant", text: SHORT }]), ctx);
-    await handlers.get("agent_settled")?.({ aborted: false }, ctx);
-
-    expect(sent).toHaveLength(0);
+    expect(extension.sent).toEqual([]);
   });
 
   it("drops a pending request when a new session starts", async () => {
-    const { pi, handlers, sent } = createFakePi();
-    beReasonable(pi);
-    const ctx = createFakeCtx();
-    await handlers.get("session_start")?.({}, ctx);
+    const extension = await startExtension();
+    const session = longAnswer();
+    await dispatchBoundary(extension, session, beforeSettle(session));
 
-    await handlers.get("agent_before_settle")?.(beforeSettle(ASKED), ctx);
+    const { handlers, ctx, sent } = extension;
     await handlers.get("session_start")?.({}, ctx);
     await handlers.get("agent_settled")?.({ aborted: false }, ctx);
 
-    expect(sent).toHaveLength(0);
+    expect(sent).toEqual([]);
+  });
+
+  it.each(["stop", "aborted"] as const)("hides the exchange at turn end on %s", async (stopReason) => {
+    const extension = await startExtension();
+    const { session, request } = startTrim();
+    const call = session.appendMessage(toolCallAnswer());
+    const result = session.appendMessage(toolResult());
+
+    const { drafts, messageEntryId } = await endTurn(extension, session, assistant(SHORT, { stopReason }));
+
+    expect(drafts).toEqual(hides(request, call, result, messageEntryId));
+    expect(await dispatchBoundary(extension, session, beforeSettle(session))).toEqual([]);
+    session.appendMessage({ role: "user", content: "What else?", timestamp: 0 });
+    expect(beforeSettle(session).context.llmMessages).toEqual([
+      { role: "user", content: PROMPT, timestamp: 0 },
+      assistant(LONG),
+      { role: "user", content: "What else?", timestamp: 0 },
+    ]);
+  });
+
+  it("keeps the request available for a retry, then hides a final error before settle", async () => {
+    const extension = await startExtension();
+    const { session, request } = startTrim();
+
+    const { drafts, messageEntryId } = await endTurn(extension, session, assistant("", { stopReason: "error" }));
+
+    expect(drafts).toEqual([]);
+    expect(await dispatchBoundary(extension, session, beforeSettle(session, "error"))).toEqual(
+      hides(request, messageEntryId),
+    );
+    await extension.handlers.get("agent_settled")?.({ aborted: false }, extension.ctx);
+    expect(extension.sent).toEqual([]);
+  });
+
+  it("waits until settle to hide a tool batch that ended the run", async () => {
+    const extension = await startExtension();
+    const { session, request } = startTrim();
+
+    const { drafts, messageEntryId, toolResultEntryIds } = await endTurn(extension, session, toolCallAnswer(), [
+      toolResult(),
+    ]);
+
+    expect(drafts).toEqual([]);
+    expect(await settle(extension, session)).toEqual(hides(request, messageEntryId, ...toolResultEntryIds));
+  });
+
+  it.each([
+    [
+      "user message",
+      (session: SessionManager) => session.appendMessage({ role: "user", content: "Keep me", timestamp: 0 }),
+    ],
+    [
+      "other extension message",
+      (session: SessionManager) => session.appendCustomMessageEntry("notification", "Keep me", true),
+    ],
+    [
+      "hidden other extension message",
+      (session: SessionManager) => {
+        const other = session.appendCustomMessageEntry("notification", "Keep me", true);
+        session.appendContextEdit(other, null);
+      },
+    ],
+    [
+      "bash output",
+      (session: SessionManager) =>
+        session.appendMessage({
+          role: "bashExecution",
+          command: "pwd",
+          output: "/tmp",
+          exitCode: 0,
+          cancelled: false,
+          truncated: false,
+          timestamp: 0,
+        }),
+    ],
+    ["branch summary", (session: SessionManager) => session.branchWithSummary(session.getLeafId(), "Branch summary")],
+    [
+      "compaction",
+      (session: SessionManager, request: string) => {
+        session.appendCompaction("Older summary", request, 0);
+        session.appendCompaction("Current summary", request, 0);
+      },
+    ],
+  ] as const)("stops hiding at the %s", async (_name, appendBarrier) => {
+    const extension = await startExtension();
+    const { session, request } = startTrim();
+    const partial = session.appendMessage(assistant("Trimmed output so far"));
+    appendBarrier(session, request);
+
+    expect((await endTurn(extension, session)).drafts).toEqual(hides(request, partial));
+  });
+
+  it("straightens old exchanges and finishes interrupted edits without hiding anything twice", async () => {
+    const extension = await startExtension();
+    const { session, request } = startTrim();
+    const first = session.appendMessage(assistant(SHORT));
+    session.appendMessage({ role: "user", content: "What else?", timestamp: 0 });
+    session.appendMessage(assistant(LONG));
+    const secondRequest = session.appendCustomMessageEntry("be-concise", "Older wording", true);
+    const second = session.appendMessage(assistant(SHORT));
+    session.appendMessage({ role: "user", content: "And then?", timestamp: 0 });
+    session.appendMessage(assistant(LONG));
+    const interruptedRequest = session.appendCustomMessageEntry("be-concise", TRIM_MESSAGE, true);
+    const alreadyHidden = session.appendMessage(assistant("Earlier omitted output"));
+    session.appendContextEdit(interruptedRequest, null);
+    session.appendContextEdit(alreadyHidden, null);
+    session.appendCustomEntry("metadata");
+    session.appendLabelChange(interruptedRequest, "trim");
+    session.appendThinkingLevelChange("low");
+    session.appendMessage({ role: "system", content: "A system patch", timestamp: 0 });
+    const lastReply = assistant(SHORT);
+    session.appendUsage("cache_warm", lastReply.provider, lastReply.model, lastReply.usage);
+    const last = session.appendMessage(lastReply);
+
+    expect(await settle(extension, session)).toEqual(hides(request, first, secondRequest, second, last));
+    expect(await dispatchBoundary(extension, session, beforeSettle(session))).toEqual([]);
   });
 });

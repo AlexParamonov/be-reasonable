@@ -18,6 +18,14 @@ function classify(entry: SessionEntry): "request" | "output" | "barrier" | "tran
   }
 }
 
+export function wasTrimRequested(entries: readonly ProjectedSessionEntry[]): boolean {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const kind = classify(entries[i].sourceEntry);
+    if (kind === "request" || kind === "barrier") return kind === "request";
+  }
+  return false;
+}
+
 export function trimContextEdits(entries: readonly ProjectedSessionEntry[]): ContextEditEntryDraft[] {
   const edits: ContextEditEntryDraft[] = [];
   let inTrim = false;
