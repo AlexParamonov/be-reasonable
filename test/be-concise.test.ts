@@ -4,12 +4,38 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { proseLength, shouldRequestTrim } from "../src/be-concise.js";
+import { trimContextEdits } from "../src/be-concise-context.js";
+import { assistant, toolResult } from "./concise-fixtures.js";
 import type { BeConciseConfig } from "../src/config/config-io.js";
 
 function settings(overrides: Partial<BeConciseConfig> = {}): BeConciseConfig {
   return { enabled: true, maxChars: 6, message: "Cut it.", ...overrides };
 }
+
+describe("trim context edits", () => {
+  it("omits the request and the whole model reply, including tool results", () => {
+    const session = SessionManager.inMemory();
+    session.appendMessage(assistant("Full answer"));
+    const request = session.appendCustomMessageEntry("be-concise", "Cut it.", true);
+    const call = session.appendMessage(
+      assistant("", {
+        content: [{ type: "toolCall", id: "call", name: "read", arguments: {} }],
+        stopReason: "toolUse",
+      }),
+    );
+    const result = session.appendMessage(toolResult());
+    const reply = session.appendMessage(assistant("Short answer"));
+
+    expect(trimContextEdits(session.buildSessionProjection().entries)).toEqual([
+      { type: "context_edit", targetId: request, replacement: null },
+      { type: "context_edit", targetId: call, replacement: null },
+      { type: "context_edit", targetId: result, replacement: null },
+      { type: "context_edit", targetId: reply, replacement: null },
+    ]);
+  });
+});
 
 describe("proseLength", () => {
   it("measures an answer that carries a code block by its prose only", () => {
