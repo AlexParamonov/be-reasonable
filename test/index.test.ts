@@ -105,6 +105,9 @@ function applyBoundaryDrafts(session: SessionManager, drafts: SessionBoundaryDra
       case "custom":
         session.appendCustomEntry(draft.customType, draft.data);
         break;
+      case "custom_message":
+        session.appendCustomMessageEntry(draft.customType, draft.content, draft.display, draft.details);
+        break;
       case "context_edit":
         session.appendContextEdit(draft.targetId, draft.replacement);
         break;
@@ -143,7 +146,8 @@ async function dispatchBoundary(
   session: SessionManager,
   event: AgentBeforeSettleEvent | TurnEndEvent,
 ) {
-  const drafts = (await handlers.get(event.type)?.(event, ctx))?.entries ?? event.entries;
+  const drafts =
+    (await handlers.get(event.type)?.(event, { ...ctx, sessionManager: session }))?.entries ?? event.entries;
   applyBoundaryDrafts(session, drafts);
   return drafts;
 }
@@ -500,6 +504,22 @@ describe("be-concise extension", () => {
       const { drafts } = await finishAnswer(extension, longAnswer(), earlier);
 
       expect(drafts).toEqual(earlier);
+    });
+
+    it("waits until a newly proposed tagged request has a committed ID", async () => {
+      const extension = await startExtension();
+      const session = longAnswer();
+      const earlier: SessionBoundaryDraft[] = [
+        { type: "custom_message", customType: "be-concise", content: TRIM_MESSAGE, display: true },
+      ];
+
+      await expect(finishAnswer(extension, session, earlier)).resolves.toMatchObject({ drafts: earlier });
+      const request = session.getLeafEntry();
+      expect(request).toMatchObject(earlier[0]);
+
+      const { drafts, messageEntryId } = await finishAnswer(extension, session, []);
+
+      expect(drafts).toEqual(hides(request!.id, messageEntryId));
     });
   });
 

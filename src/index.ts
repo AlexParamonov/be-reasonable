@@ -3,7 +3,12 @@
  * Omit the trim exchange from model context at Pi's boundaries without altering the transcript.
  */
 import { join } from "node:path";
-import type { BoundaryState, ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type {
+  BoundaryState,
+  ExtensionAPI,
+  ExtensionCommandContext,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { ConfigStore } from "./config/config-store.ts";
 import { showSettingsMenu } from "./ui/menu/menus.ts";
 import { BE_REASONABLE_SKILL } from "./skills.ts";
@@ -25,8 +30,9 @@ function lastAssistantText(messages: readonly { role: string; content: unknown }
   return "";
 }
 
-function proposeTrimEdits(event: BoundaryState) {
-  const edits = trimContextEdits(event.context.contextEntries);
+function proposeTrimEdits(event: BoundaryState, session: ExtensionContext["sessionManager"]) {
+  // Pi assigns draft-only entries different IDs in the preview and on commit.
+  const edits = trimContextEdits(event.context.contextEntries).filter(({ targetId }) => session.getEntry(targetId));
   if (edits.length > 0) return { entries: [...event.entries, ...edits] };
 }
 
@@ -63,12 +69,12 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("turn_end", (event) => {
+  pi.on("turn_end", (event, ctx) => {
     if (event.outcome === "error" || event.toolResults.length > 0) return;
-    return proposeTrimEdits(event);
+    return proposeTrimEdits(event, ctx.sessionManager);
   });
 
-  pi.on("agent_before_settle", (event) => {
+  pi.on("agent_before_settle", (event, ctx) => {
     const { contextEntries, llmMessages } = event.context;
     trimWanted =
       event.outcome === "completed" &&
@@ -77,7 +83,7 @@ export default function (pi: ExtensionAPI) {
         beConcise: store.beConcise,
         alreadyTrimmed: wasTrimRequested(contextEntries),
       });
-    return proposeTrimEdits(event);
+    return proposeTrimEdits(event, ctx.sessionManager);
   });
 
   pi.on("agent_settled", async (event, ctx) => {
