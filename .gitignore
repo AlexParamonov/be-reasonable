@@ -1,2 +1,6 @@
 node_modules/
 be-reasonable-openai.zip
+
+# Tasks (keep only lessons.md)
+tasks/*
+!tasks/lessons.md
