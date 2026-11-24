@@ -1,36 +1,27 @@
 # be-reasonable
 
-Simplify code without sacrificing correctness and keep tests focused on behavior.
+Simplify code without sacrificing correctness, keep tests focused on behavior, and keep answers short.
 
-It also turns pages of agent prose into the answer you can read, without asking the agent to reason less.
-
-The skills provide reusable guidance to agents that support Agent Skills. An agent selects them when the task matches, and you can also invoke a skill directly as a command.
+The package ships four skills. An agent loads one when the task matches its description, and you can run any of them as a command.
 
 ## Pi
-
-Install the package from npm:
 
 ```sh
 pi install npm:be-reasonable
 ```
 
-Pi loads the skills by default. To install for the current project instead of all projects:
-
-```sh
-pi install -l npm:be-reasonable
-```
+Add `-l` to install for the current project instead of every project.
 
 ### Skills
 
-Pi selects a skill when the task matches its description, or you can invoke it directly:
-- `/skill:be-reasonable` reviews unnecessary complexity. Pi is also told to apply it before reporting work complete.
-- `/skill:maintain-tests` reviews test quality and includes a bundled fallback testing guide.
-- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing at all to tidy the Unreleased section. Pi will not reach for it on its own, because its row in `/be-reasonable-settings` is off.
-- `/skill:be-concise` cuts the last reply down, automatically and fully configurable via /be-reasonable-settings menu.
+- `/skill:be-reasonable` reviews unnecessary complexity. Pi is told to apply it before reporting work complete.
+- `/skill:maintain-tests` reviews test quality, with a bundled fallback guide.
+- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing to tidy the Unreleased section. Its settings row is off, so Pi will not pick it up on its own.
+- `/skill:be-concise` asks for a shorter answer.
 
-### be-concise extension
+### Be concise
 
-Pi only. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer if it passes your bound:
+Pi only. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer when it passes your bound. It is off until you switch it on:
 
 ```json
 // ~/.pi/agent/be-reasonable.json
@@ -43,17 +34,19 @@ Pi only. When the answer to your prompt is final, the extension counts its prose
 }
 ```
 
-`enabled` is off until you set it, and `message` is the instruction the agent receives: those two words by default, the ones `/skill:be-concise` carries, because an elaborate instruction tested worse than the plain one. Put whatever you like there. A trusted project's `.pi/be-reasonable.json` overrides every setting for that project, so one repository can run with its own bound, switch and wording.
+`message` is the instruction the model receives. The default is the plain two words `/skill:be-concise` carries, because a longer one tested worse. A trusted project's `.pi/be-reasonable.json` overrides every `beConcise` setting for that project.
 
-`/be-reasonable-settings` is the menu for these files: **Be concise** opens the be-concise settings, where the switch, the bound and the wording are each one row. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides is shown as `500 [project]`, so you can tell an override from an inherited value, and every change says which file it landed in.
+The request waits for the turn to end rather than cutting in while tools run, and comes once per answer: the answer to a request is never asked again, an interrupted answer gets none, and neither does one when you already have a message queued, because that message steers the answer itself.
 
-The request waits for the turn to end rather than cutting in while tools are still running. It comes once per answer: the answer to a request is never asked again, and a later run in the same turn, one a background notification started for example, gets its own request. An interrupted answer gets no request, and neither does one when you already have a message queued: that message will steer the answer itself.
+The shorter answer and the request stay in the transcript, also after you reopen the session, but leave the model's context once the shorter answer ends. Later replies are answered from the full answer, even when you refer to the shorter one. If Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it at the end of that answer.
 
-When the shorter answer ends, Pi leaves it and the trim request in the transcript, even after you reopen the session, but removes them from the model's context. Later replies use the full original answer, even if you refer to the shorter one. If Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it at the end of that answer.
+### Settings
+
+`/be-reasonable-settings` changes any setting without editing a file. **Be concise** opens its three rows: the switch, the bound and the wording. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides shows as `500 [project]`, and every change says which file it landed in.
 
 ### Skill visibility
 
-Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn for something you never let the agent choose. Switch it off in `/be-reasonable-settings` under **Skills**, one row per skill:
+Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn. Switch it off in `/be-reasonable-settings` under **Skills**, one row per skill:
 
 ```json
 // ~/.pi/agent/be-reasonable.json
@@ -64,15 +57,15 @@ Pi shows the model every skill it loads, and the model reads those descriptions 
 }
 ```
 
-A switched-off skill leaves the model's skill listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. Rows use the same Global and Project levels as the be-concise settings, so one repository can show the model a skill the rest of your work keeps to yourself. A project's config can only switch skills this package ships, never your own.
+A switched-off skill leaves the model's listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. Defaults: `be-reasonable` and `maintain-tests` shown, `maintain-changelog` not. Rows use the same Global and Project levels as the be-concise settings, and a project's config can switch only the skills this package ships.
 
-`be-concise` has no row. It ships `disable-model-invocation: true` in its own `SKILL.md`, which is pi's own switch and applies before ours, so a setting could never show it. `maintain-changelog` used to ship that way too: its row is now the switch, and it is off by default, so nothing changes until you turn it on.
+`be-concise` has no row: its `SKILL.md` ships `disable-model-invocation: true`, which is pi's own switch and applies first.
 
 ## Other agents
 
-These agents read the `SKILL.md` files and nothing else, so the skill visibility setting is pi's alone.
+These read the `SKILL.md` files and nothing else, so the skill visibility setting is pi's alone.
 
-Claude Code users can install the GitHub plugin:
+Claude Code:
 
 ```sh
 claude plugin marketplace add AlexParamonov/be-reasonable
@@ -81,7 +74,7 @@ claude plugin marketplace add AlexParamonov/be-reasonable
 
 Its skills are namespaced, for example `/be-reasonable:maintain-tests`.
 
-Codex users can install the GitHub marketplace plugin:
+Codex:
 
 ```sh
 codex plugin marketplace add AlexParamonov/be-reasonable
@@ -101,7 +94,7 @@ npx skills@latest add AlexParamonov/be-reasonable -a opencode
 npx skills@latest add AlexParamonov/be-reasonable -a universal   # shared .agents/skills/
 ```
 
-To install only one skill, add `--skill maintain-changelog`, `--skill maintain-tests`, `--skill be-concise` or `--skill be-reasonable`. Use `-g` for a global install; `npx skills --help` lists supported agents.
+To install one skill, add `--skill maintain-changelog`, `--skill maintain-tests`, `--skill be-concise` or `--skill be-reasonable`. Use `-g` for a global install; `npx skills --help` lists supported agents.
 
 ## Development
 
