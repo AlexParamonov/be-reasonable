@@ -114,13 +114,6 @@ function boundaryState(session: SessionManager, outcome: BoundaryState["outcome"
   };
 }
 
-function beforeSettle(
-  session: SessionManager,
-  outcome: BoundaryState["outcome"] = "completed",
-): AgentBeforeSettleEvent {
-  return { type: "agent_before_settle", ...boundaryState(session, outcome) };
-}
-
 async function dispatchBoundary(
   { handlers, ctx }: RunningExtension,
   session: SessionManager,
@@ -132,6 +125,14 @@ async function dispatchBoundary(
     session.appendContextEdit(draft.targetId, draft.replacement);
   }
   return drafts;
+}
+
+function dispatchBeforeSettle(
+  extension: RunningExtension,
+  session: SessionManager,
+  outcome: BoundaryState["outcome"] = "completed",
+) {
+  return dispatchBoundary(extension, session, { type: "agent_before_settle", ...boundaryState(session, outcome) });
 }
 
 async function endTurn(
@@ -156,7 +157,7 @@ async function endTurn(
 }
 
 async function settle(extension: RunningExtension, session: SessionManager, aborted = false) {
-  const drafts = await dispatchBoundary(extension, session, beforeSettle(session));
+  const drafts = await dispatchBeforeSettle(extension, session);
   await extension.handlers.get("agent_settled")?.({ aborted }, extension.ctx);
   return drafts;
 }
@@ -333,7 +334,7 @@ describe("be-concise extension", () => {
   it("measures the answer that settled, not a longer one before it", async () => {
     const extension = await startExtension();
     const session = longAnswer();
-    await dispatchBoundary(extension, session, beforeSettle(session));
+    await dispatchBeforeSettle(extension, session);
 
     session.appendMessage(assistant(SHORT));
     await settle(extension, session);
@@ -344,7 +345,7 @@ describe("be-concise extension", () => {
   it("drops a pending request when a new session starts", async () => {
     const extension = await startExtension();
     const session = longAnswer();
-    await dispatchBoundary(extension, session, beforeSettle(session));
+    await dispatchBeforeSettle(extension, session);
 
     const { handlers, ctx, sent } = extension;
     await handlers.get("session_start")?.({}, ctx);
@@ -362,9 +363,9 @@ describe("be-concise extension", () => {
     const { drafts, messageEntryId } = await endTurn(extension, session, assistant(SHORT, { stopReason }));
 
     expect(drafts).toEqual(hides(request, call, result, messageEntryId));
-    expect(await dispatchBoundary(extension, session, beforeSettle(session))).toEqual([]);
+    expect(await dispatchBeforeSettle(extension, session)).toEqual([]);
     session.appendMessage({ role: "user", content: "What else?", timestamp: 0 });
-    expect(beforeSettle(session).context.llmMessages).toEqual([
+    expect(convertToLlm(session.buildSessionProjection().messages)).toEqual([
       { role: "user", content: PROMPT, timestamp: 0 },
       assistant(LONG),
       { role: "user", content: "What else?", timestamp: 0 },
@@ -378,9 +379,7 @@ describe("be-concise extension", () => {
     const { drafts, messageEntryId } = await endTurn(extension, session, assistant("", { stopReason: "error" }));
 
     expect(drafts).toEqual([]);
-    expect(await dispatchBoundary(extension, session, beforeSettle(session, "error"))).toEqual(
-      hides(request, messageEntryId),
-    );
+    expect(await dispatchBeforeSettle(extension, session, "error")).toEqual(hides(request, messageEntryId));
     await extension.handlers.get("agent_settled")?.({ aborted: false }, extension.ctx);
     expect(extension.sent).toEqual([]);
   });
@@ -466,6 +465,6 @@ describe("be-concise extension", () => {
     const last = session.appendMessage(lastReply);
 
     expect(await settle(extension, session)).toEqual(hides(request, first, secondRequest, second, last));
-    expect(await dispatchBoundary(extension, session, beforeSettle(session))).toEqual([]);
+    expect(await dispatchBeforeSettle(extension, session)).toEqual([]);
   });
 });
