@@ -8,7 +8,7 @@ setting (name, default, where to toggle), a breaking change's migration, or a nu
 
 ### Changed
 
-- **`be-concise`** — the trim request and shorter answer stay in the transcript, but later replies use the full original answer.
+- **`be-concise`** — the shorter answer stays in the transcript, and the model no longer sees it or the request in later turns.
 
 ## [0.2.0] - 2026-11-23
 
