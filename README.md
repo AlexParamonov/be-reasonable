@@ -1,8 +1,8 @@
 # be-reasonable
 
-Simplify code without sacrificing correctness, keep tests focused on behavior, and keep answers short.
+Less to review: simpler code, tests that assert behavior, changelogs a person can read, and answers that fit on a screen.
 
-The package ships four skills. An agent loads one when the task matches its description, and you can run any of them as a command.
+Four skills, picked by the agent when the task matches or run by you, and one extension that trims a long answer. The skills work in any agent that reads `SKILL.md`; the extension is pi only and on by default.
 
 ## Pi
 
@@ -12,26 +12,22 @@ pi install npm:be-reasonable
 
 Add `-l` to install for the current project instead of every project.
 
+### Shorter answers
+
+`be-concise` is pi only, and on by default. It is for you to read, not for the model to work from: when the answer to your prompt is final, it counts the prose, ignoring code blocks and tables, and asks for a shorter answer when it passes your bound. Switch it off in `/be-reasonable-settings`.
+
+**What you see:** your full answer, then a shorter one below it. Both stay in the session and on screen, also after a reopen; nothing is rewritten.
+
+**What the model sees:** the full answer and your reply, and nothing else. Pi keeps the session whole and filters the request and the shorter answer out before the model, so later answers are exactly the ones you would have had without be-concise.
+
+One request per answer, after it finishes: none for an interrupted answer, and none when a message you queued will steer it instead.
+
 ### Skills
 
-- `/skill:be-reasonable` reviews unnecessary complexity. Pi is told to apply it before reporting work complete.
-- `/skill:maintain-tests` reviews test quality, with a bundled fallback guide.
-- `/skill:maintain-changelog` writes or tidies `CHANGELOG.md`: pass the change to document, or nothing to tidy the Unreleased section. Its settings row is off, so Pi will not pick it up on its own.
-- `/skill:be-concise` asks for a shorter answer.
-
-### Be concise
-
-Pi only. It is on by default: switch it off in `/be-reasonable-settings` when you do not want it. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer when it passes your bound.
-
-The request comes after the answer finishes, never while tools are still running, and once per answer: the answer to a request is never asked again, an interrupted answer gets none, and neither does one when you already have a message queued, because that message steers the answer itself.
-
-#### Why nothing is rewritten
-
-The trim request and the shorter answer stay in the session and on screen, after a reopen too. Only the model's context loses them, once the shorter answer's last message ends. Pi records the hide as a separate context-edit entry that names the message, so nothing is deleted or rewritten, and every consumer of context follows the same projection, compaction and token counts included.
-
-What you gain: the trim instruction stops steering turns that have nothing to do with it, the shorter answer is not paid for twice, and the record stays honest about what was said.
-
-What it costs: the model never sees the shorter answer, so a reply that refers to it is answered from the full answer. And if Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it when that answer ends.
+- `/skill:be-reasonable` cuts the complexity a reviewer would push back on. Pi is also told to apply it before it reports work complete.
+- `/skill:maintain-tests` keeps tests on behavior: no assertions on copy, class names or private methods.
+- `/skill:maintain-changelog` writes one bullet per change a reader can observe, with a checker that refuses an over-long one. Its row is off, so pi will not pick it up on its own.
+- `/skill:be-concise` asks for a shorter answer by hand.
 
 ### Settings
 
@@ -48,7 +44,7 @@ Settings live in `~/.pi/agent/be-reasonable.json`, and in `.pi/be-reasonable.jso
 
 ### Skill visibility
 
-Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn.
+Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn. Switch it off under **Skills**, one row per skill.
 
 A switched-off skill leaves the model's listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. A project's config can switch only the skills this package ships. `be-concise` has no row: its `SKILL.md` ships `disable-model-invocation: true`, which is pi's own switch and applies first.
 

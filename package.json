@@ -1,6 +1,6 @@
 {
   "name": "be-reasonable",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Simplify code without sacrificing correctness, keep tests focused on behavior, keep changelogs readable.",
   "keywords": [
     "pi-package",

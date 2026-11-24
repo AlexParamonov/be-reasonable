@@ -6,9 +6,12 @@ setting (name, default, where to toggle), a breaking change's migration, or a nu
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 ### Changed
 
 - **`be-concise`** — the shorter answer stays in the transcript, and the model no longer sees it or the request in later turns.
+- **`be-concise` default** — on by default, so a long answer is trimmed without setup. Switch it off in `/be-reasonable-settings` or with `"enabled": false`.
 
 ## [0.2.0] - 2026-11-23
 
