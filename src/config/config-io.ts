@@ -25,7 +25,7 @@ const CONFIG_DIR = getAgentDir();
 const CONFIG_PATH = path.join(CONFIG_DIR, CONFIG_FILE_NAME);
 
 export const DEFAULT_BE_CONCISE: BeConciseConfig = {
-  enabled: false,
+  enabled: true,
   maxChars: 700,
   // The words /skill:be-concise carries: an elaborate instruction tested worse than the plain one.
   message: "Be concise",

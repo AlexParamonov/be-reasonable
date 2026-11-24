@@ -156,7 +156,7 @@ describe("load-time validation — the store", () => {
         saveGlobal: () => {},
         saveProject: () => {},
       });
-      expect(store.beConcise.enabled).toBe(false);
+      expect(store.beConcise.enabled).toBe(true);
       expect(store.beConcise.maxChars).toBe(900);
     } finally {
       warn.mockRestore();

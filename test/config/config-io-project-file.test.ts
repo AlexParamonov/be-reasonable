@@ -169,7 +169,7 @@ describe("mergeDefaults / loadConfig", () => {
     const config = mergeDefaults({ beConcise: { maxChars: 500 } });
 
     expect(config.beConcise.maxChars).toBe(500);
-    expect(config.beConcise.enabled).toBe(false);
+    expect(config.beConcise.enabled).toBe(true);
     expect(config.beConcise.message.length).toBeGreaterThan(0);
   });
 

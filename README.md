@@ -21,45 +21,36 @@ Add `-l` to install for the current project instead of every project.
 
 ### Be concise
 
-Pi only. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer when it passes your bound. It is off until you switch it on:
+Pi only. It is on by default: switch it off in `/be-reasonable-settings` when you do not want it. When the answer to your prompt is final, the extension counts its prose, ignoring fenced code blocks and tables, and asks for a shorter answer when it passes your bound.
 
-```json
-// ~/.pi/agent/be-reasonable.json
-{
-  "beConcise": {
-    "enabled": true,
-    "maxChars": 700,
-    "message": "Be concise"
-  }
-}
-```
+The request comes after the answer finishes, never while tools are still running, and once per answer: the answer to a request is never asked again, an interrupted answer gets none, and neither does one when you already have a message queued, because that message steers the answer itself.
 
-`message` is the instruction the model receives. The default is the plain two words `/skill:be-concise` carries, because a longer one tested worse. A trusted project's `.pi/be-reasonable.json` overrides every `beConcise` setting for that project.
+#### Why nothing is rewritten
 
-The request waits for the turn to end rather than cutting in while tools run, and comes once per answer: the answer to a request is never asked again, an interrupted answer gets none, and neither does one when you already have a message queued, because that message steers the answer itself.
+The trim request and the shorter answer stay in the session and on screen, after a reopen too. Only the model's context loses them, once the shorter answer's last message ends. Pi records the hide as a separate context-edit entry that names the message, so nothing is deleted or rewritten, and every consumer of context follows the same projection, compaction and token counts included.
 
-The shorter answer and the request stay in the transcript, also after you reopen the session, but leave the model's context once the shorter answer ends. Later replies are answered from the full answer, even when you refer to the shorter one. If Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it at the end of that answer.
+What you gain: the trim instruction stops steering turns that have nothing to do with it, the shorter answer is not paid for twice, and the record stays honest about what was said.
+
+What it costs: the model never sees the shorter answer, so a reply that refers to it is answered from the full answer. And if Pi exits before the shorter answer's last message ends, the next answer still sees the exchange; Pi hides it when that answer ends.
 
 ### Settings
 
-`/be-reasonable-settings` changes any setting without editing a file. **Be concise** opens its three rows: the switch, the bound and the wording. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides shows as `500 [project]`, and every change says which file it landed in.
+`/be-reasonable-settings` writes every setting without editing a file. **Be concise** opens its three rows, **Skills** one row per skill. A row first asks which level to write, Global or Project, and its **Clear...** entry removes the setting from one level at a time. A value the project file provides shows as `500 [project]`, and every change says which file it landed in.
+
+Settings live in `~/.pi/agent/be-reasonable.json`, and in `.pi/be-reasonable.json` of a trusted project, whose values override the global ones:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `beConcise.enabled` | `true` | Ask for a shorter answer when a final answer passes the bound. |
+| `beConcise.maxChars` | `700` | Characters of prose allowed. Code blocks and tables are not counted. |
+| `beConcise.message` | `Be concise` | The instruction the model receives. Any text; a longer one tested worse. |
+| `modelInvocable.<skill>` | `true`, except `maintain-changelog` | Whether the model sees the skill in its listing. |
 
 ### Skill visibility
 
-Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn. Switch it off in `/be-reasonable-settings` under **Skills**, one row per skill:
+Pi shows the model every skill it loads, and the model reads those descriptions to decide what to open. If you only ever run a skill yourself, that listing costs you tokens on every turn.
 
-```json
-// ~/.pi/agent/be-reasonable.json
-{
-  "modelInvocable": {
-    "maintain-tests": false
-  }
-}
-```
-
-A switched-off skill leaves the model's listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. Defaults: `be-reasonable` and `maintain-tests` shown, `maintain-changelog` not. Rows use the same Global and Project levels as the be-concise settings, and a project's config can switch only the skills this package ships.
-
-`be-concise` has no row: its `SKILL.md` ships `disable-model-invocation: true`, which is pi's own switch and applies first.
+A switched-off skill leaves the model's listing from the next turn, and `/skill:maintain-tests` still runs it: the switch hides the invitation, not the skill. A project's config can switch only the skills this package ships. `be-concise` has no row: its `SKILL.md` ships `disable-model-invocation: true`, which is pi's own switch and applies first.
 
 ## Other agents
 
