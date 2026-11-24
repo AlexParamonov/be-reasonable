@@ -74,6 +74,7 @@ function createFakePi() {
     registerCommand: (name: string, command: { handler: (args: string, ctx: ExtensionContext) => Promise<void> }) => {
       commands.set(name, command);
     },
+    registerMessageRenderer: () => {},
     sendMessage: (message: Sent["message"], options?: Sent["options"]) => {
       sent.push({ message, options });
     },

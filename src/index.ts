@@ -3,6 +3,7 @@
  * Omit the trim exchange from model context at Pi's boundaries without altering the transcript.
  */
 import { join } from "node:path";
+import { Text } from "@earendil-works/pi-tui";
 import type {
   BoundaryState,
   ExtensionAPI,
@@ -38,6 +39,11 @@ function proposeTrimEdits(event: BoundaryState, session: ExtensionContext["sessi
 
 export default function (pi: ExtensionAPI) {
   const store = new ConfigStore();
+
+  pi.registerMessageRenderer(
+    TRIM_TYPE,
+    (_message, _options, theme) => new Text(theme.fg("customMessageLabel", `[${TRIM_TYPE}]`), 0, 0),
+  );
 
   pi.registerCommand("be-reasonable-settings", {
     description: "Configure be-reasonable: be concise settings, skill visibility",
